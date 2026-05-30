@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MILFACE - Alta de Soldado</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    
+    <style>
+        .scanner-frame {
+            position: relative;
+            display: inline-block;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .scanner-frame img {
+            display: block;
+        }
+        .scanner-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: var(--neon-blue);
+            box-shadow: 0 0 10px var(--neon-blue);
+            animation: scan 3s infinite linear;
+            z-index: 10;
+        }
+        .scanner-corners::before, .scanner-corners::after {
+            content: ''; position: absolute; width: 40px; height: 40px; border: 4px solid var(--neon-blue); z-index: 5;
+        }
+        .scanner-corners::before { top: 10px; left: 10px; border-right: none; border-bottom: none; }
+        .scanner-corners::after { bottom: 10px; right: 10px; border-left: none; border-top: none; }
+        
+        .corner-tr { position: absolute; top: 10px; right: 10px; width: 40px; height: 40px; border: 4px solid var(--neon-blue); border-left: none; border-bottom: none; z-index: 5;}
+        .corner-bl { position: absolute; bottom: 10px; left: 10px; width: 40px; height: 40px; border: 4px solid var(--neon-blue); border-right: none; border-top: none; z-index: 5;}
+
+        @keyframes scan {
+            0% { top: 0%; }
+            50% { top: 100%; }
+            100% { top: 0%; }
+        }
+    </style>
+</head>
+<body data-theme="{{ app_config.tema_visual }}">
+
+<div class="container-fluid p-0">
+    <div class="row g-0">
+
+        <!-- MENÚ IZQUIERDO -->
+        <div class="col-md-2 sidebar d-flex flex-column" style="min-height: 100vh;">
+            <h3><i class="bi bi-shield-lock-fill"></i> MILFACE</h3>
+            <div class="mt-4">
+                <a href="/"><i class="bi bi-speedometer2"></i> Panel de Control</a>
+                <a href="/registrar" style="border-left: 3px solid var(--neon-blue); background: rgba(0,242,254,0.1); color: var(--text-main);"><i class="bi bi-person-plus-fill"></i> Registrar Personal Militar</a>
+                <a href="/soldados"><i class="bi bi-people-fill"></i> Galería Militar</a>
+                <a href="/asistencia"><i class="bi bi-card-checklist"></i> Asistencia</a>
+                <a href="/reporte"><i class="bi bi-file-earmark-excel-fill"></i> Reportes</a>
+                                
+                <h6 class="text-secondary mt-4 mb-2 ms-3" style="font-size: 12px; letter-spacing: 1px;">SISTEMA</h6>
+                <a href="/settings"><i class="bi bi-sliders"></i> Master Ajustes</a>
+                
+            </div>
+        </div>
+
+        <!-- CONTENIDO DERECHO -->
+        <!-- BOTOÓN DE CERRAR SESIÓN FLOTANTE -->
+        <a href="/logout" title="Cerrar Sistema" style="position: absolute; top: 25px; right: 40px; z-index: 1000; font-size: 24px; color: var(--neon-red); text-shadow: 0 0 10px rgba(255,42,95,0.5); text-decoration: none; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+            <i class="bi bi-power"></i>
+        </a>
+
+        <div class="col-md-10 p-5 d-flex justify-content-center">
+
+            <div class="glass-panel" style="max-width: 700px; width: 100%;">
+
+                <h2 class="mb-4 text-center" style="font-family: 'Orbitron', sans-serif;"><i class="bi bi-person-bounding-box text-info"></i> Alta en Base de Datos</h2>
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                    {% if messages %}
+                        {% for category, msg in messages %}
+                        <div class="alert {% if category == 'danger' %}alert-danger{% elif category == 'warning' %}alert-warning{% else %}alert-info{% endif %} text-start mb-4" 
+                             style="background: {% if category == 'danger' %}rgba(255, 42, 95, 0.15){% elif category == 'warning' %}rgba(248, 193, 2, 0.15){% else %}rgba(0, 242, 254, 0.15){% endif %}; 
+                                    border: 1px solid {% if category == 'danger' %}var(--neon-red){% elif category == 'warning' %}var(--neon-yellow){% else %}var(--neon-blue){% endif %}; 
+                                    color: var(--text-main);">
+                            <i class="bi {% if category == 'danger' %}bi-exclamation-triangle-fill text-danger{% elif category == 'warning' %}bi-exclamation-diamond-fill text-warning{% else %}bi-info-circle-fill text-info{% endif %} me-2"></i> 
+                            {{ msg }}
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                {% endwith %}
+
+                {% if not request.args.get('cedula') %}
+                <!-- PASO 1: FORMULARIO -->
+                <form method="POST">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-6 mb-3">
+                            <label class="text-secondary mb-1">Cédula de Identidad</label>
+                            <input type="text" name="cedula" class="form-control input-cyber" required placeholder="Ej. 172948...">
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="text-secondary mb-1">Rango</label>
+                            <select name="rango" class="form-control input-cyber" required>
+                                <option value="" disabled selected>Seleccione Rango Militar</option>
+                                <option value="Soldado Raso">Soldado Raso</option>
+                                <option value="Cabo Segundo">Cabo Segundo</option>
+                                <option value="Cabo Primero">Cabo Primero</option>
+                                <option value="Sargento Segundo">Sargento Segundo</option>
+                                <option value="Sargento Primero">Sargento Primero</option>
+                                <option value="Suboficial">Suboficial</option>
+                                <option value="Subteniente">Subteniente</option>
+                                <option value="Teniente">Teniente</option>
+                                <option value="Capitán">Capitán</option>
+                                <option value="Mayor">Mayor</option>
+                                <option value="Teniente Coronel">Teniente Coronel</option>
+                                <option value="Coronel">Coronel</option>
+                                <option value="General">General</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="text-secondary mb-1">Nombres</label>
+                            <input type="text" name="nombre" class="form-control input-cyber" required>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="text-secondary mb-1">Apellidos</label>
+                            <input type="text" name="apellidos" class="form-control input-cyber" required>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="text-secondary mb-1">Sexo</label>
+                            <select name="sexo" class="form-control input-cyber" required>
+                                <option value="" disabled selected>Seleccione Sexo</option>
+                                <option value="Masculino">Masculino</option>
+                                <option value="Femenino">Femenino</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="text-secondary mb-1">Tipo de Sangre</label>
+                            <select name="tipo_sangre" class="form-control input-cyber" required>
+                                <option value="" disabled selected>Seleccione Tipo de Sangre</option>
+                                <option value="O+">O+</option>
+                                <option value="O-">O-</option>
+                                <option value="A+">A+</option>
+                                <option value="A-">A-</option>
+                                <option value="B+">B+</option>
+                                <option value="B-">B-</option>
+                                <option value="AB+">AB+</option>
+                                <option value="AB-">AB-</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="/" class="btn-neon border border-secondary text-secondary" style="background: transparent;">❌ Cancelar</a>
+                        <button type="submit" class="btn-neon">
+                            Adquisición Biométrica <i class="bi bi-arrow-right-circle ms-2"></i>
+                        </button>
+                    </div>
+
+                </form>
+
+                {% else %}
+                <!-- PASO 2: TOMA DE BILES -->
+                <div class="text-center">
+                    <h5 class="text-warning mb-4"><i class="bi bi-upc-scan"></i> Calibración Biométrica Requerida</h5>
+                    <p class="text-secondary mb-4">Alinee el rostro del sujeto en el visor para capturar las tres dimensiones de reconocimiento.</p>
+
+                    <div class="scanner-frame">
+                        <div class="scanner-corners"></div>
+                        <div class="corner-tr"></div>
+                        <div class="corner-bl"></div>
+                        <div class="scanner-line"></div>
+                        <!-- CAMBIO WEB: Se usa el elemento de video nativo en vez de la imagen del backend -->
+                        <video id="videoElement" width="450" autoplay playsinline style="border-radius: 8px; transform: scaleX(-1);"></video>
+                        <canvas id="canvasElement" style="display:none;"></canvas>
+                    </div>
+
+                    <div class="mt-4 mb-3 d-flex justify-content-center gap-3">
+                        <button class="btn-neon" onclick="capturar('frente')" id="btn-frente"><i class="bi bi-camera"></i> Frente</button>
+                        <button class="btn-neon" onclick="capturar('derecha')" id="btn-derecha"><i class="bi bi-camera"></i> Derecha</button>
+                        <button class="btn-neon" onclick="capturar('izquierda')" id="btn-izquierda"><i class="bi bi-camera"></i> Izquierda</button>
+                    </div>
+
+                    <div class="d-flex justify-content-around mt-4 bg-dark p-3 rounded border border-secondary">
+                        <span id="frente" class="text-secondary"><i class="bi bi-x-circle text-danger"></i> FRENTE</span>
+                        <span id="derecha" class="text-secondary"><i class="bi bi-x-circle text-danger"></i> DERECHA</span>
+                        <span id="izquierda" class="text-secondary"><i class="bi bi-x-circle text-danger"></i> IZQUIERDA</span>
+                    </div>
+
+                    <p id="mensaje" class="text-info font-monospace mt-3 mb-0" style="min-height: 25px;">Activando cámara web local...</p>
+
+                    <div class="mt-4">
+                        <a href="/" class="btn-neon border border-danger text-danger" style="background: transparent;">Someter Interrupción</a>
+                        <a href="/" id="finalizar" class="btn-neon-green ms-2" style="display:none;">
+                            <i class="bi bi-database-check"></i> Finalizar Enrolamiento
+                        </a>
+                    </div>
+                </div>
+
+                <script>
+                let fotos = { frente: false, derecha: false, izquierda: false };
+                
+                // Configurar cámara local (Frontend)
+                const video = document.getElementById('videoElement');
+                const canvas = document.getElementById('canvasElement');
+
+                navigator.mediaDevices.getUserMedia({ video: true })
+                    .then(stream => {
+                        video.srcObject = stream;
+                        document.getElementById("mensaje").innerText = "[SISTEMA]: Cámara conectada. Listo para enrolamiento.";
+                    })
+                    .catch(err => {
+                        console.error("Error accediendo a la cámara: ", err);
+                        document.getElementById("mensaje").innerText = "[ERROR]: Permite el uso de la cámara en el navegador.";
+                        document.getElementById("mensaje").classList.replace("text-info", "text-danger");
+                    });
+
+                function capturar(posicion) {
+                    let cedula = "{{ request.args.get('cedula') }}";
+
+                    // Dibujar el fotograma actual del video en el canvas
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    let context = canvas.getContext('2d');
+                    // Invertir imagen si el video está en modo espejo
+                    context.translate(canvas.width, 0);
+                    context.scale(-1, 1);
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+                    // Obtener la imagen en formato base64
+                    let dataURL = canvas.toDataURL('image/jpeg', 0.9);
+
+                    // Enviar al servidor mediante POST
+                    fetch(`/api/guardar_foto`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            cedula: cedula,
+                            posicion: posicion,
+                            imagen: dataURL
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if(data.status === "ok") {
+                            document.getElementById("mensaje").innerText = "[SISTEMA]: Vector " + posicion.toUpperCase() + " adquirido.";
+                            fotos[posicion] = true;
+
+                            // Actualizar diseño del botón
+                            let btn = document.getElementById("btn-" + posicion);
+                            btn.classList.remove("btn-neon");
+                            btn.className += " px-4 py-2 text-secondary border-secondary";
+                            btn.style.background = "rgba(255,255,255,0.05)";
+
+                            // Actualizar indicador
+                            let tracker = document.getElementById(posicion);
+                            tracker.innerHTML = '<i class="bi bi-check-circle-fill text-success"></i> ' + posicion.toUpperCase();
+                            tracker.classList.remove("text-secondary");
+                            tracker.classList.add("text-success", "fw-bold");
+
+                            validar();
+                        } else {
+                            document.getElementById("mensaje").innerText = "[ERROR]: Fallo al guardar en el servidor.";
+                        }
+                    });
+                }
+
+                function validar() {
+                    if (fotos.frente && fotos.derecha && fotos.izquierda) {
+                        document.getElementById("finalizar").style.display = "inline-block";
+                        document.getElementById("mensaje").innerText = "[SISTEMA]: Perfil biométrico 100% completado.";
+                        document.getElementById("mensaje").classList.replace("text-info", "text-success");
+                        // Apagar cámara local al terminar
+                        let stream = video.srcObject;
+                        if(stream) {
+                            let tracks = stream.getTracks();
+                            tracks.forEach(track => track.stop());
+                        }
+                    }
+                }
+                </script>
+                {% endif %} 
+            </div> 
+        </div> 
+
+    </div>
+</div>
+
+</body>
+</html>

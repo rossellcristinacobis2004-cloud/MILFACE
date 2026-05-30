@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MILFACE - Centro de Inteligencia y Reportes</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        @keyframes blinker {
+            50% { opacity: 0.3; }
+        }
+        .blink-slow {
+            animation: blinker 1.8s linear infinite;
+        }
+        .card-stat {
+            transition: all 0.3s ease;
+        }
+        .card-stat:hover {
+            transform: translateY(-5px);
+        }
+        .table-responsive {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body data-theme="{{ app_config.tema_visual }}">
+
+<div class="container-fluid p-0">
+    <div class="row g-0">
+
+        <!-- MENÚ IZQUIERDO -->
+        <div class="col-md-2 sidebar d-flex flex-column" style="min-height: 100vh;">
+            <h3><i class="bi bi-shield-lock-fill"></i> MILFACE</h3>
+            <div class="mt-4">
+                <a href="/"><i class="bi bi-speedometer2"></i> Panel de Control</a>
+                <a href="/registrar"><i class="bi bi-person-plus-fill"></i> Registrar Personal Militar</a>
+                <a href="/soldados"><i class="bi bi-people-fill"></i> Galería Militar</a>
+                <a href="/asistencia"><i class="bi bi-card-checklist"></i> Asistencia</a>
+                <a href="/reporte" style="border-left: 3px solid var(--neon-blue); background: rgba(0,242,254,0.1); color: var(--text-main);"><i class="bi bi-file-earmark-excel-fill"></i> Reportes</a>
+                                
+                <h6 class="text-secondary mt-4 mb-2 ms-3" style="font-size: 12px; letter-spacing: 1px;">SISTEMA</h6>
+                <a href="/settings"><i class="bi bi-sliders"></i> Master Ajustes</a>
+            </div>
+        </div>
+
+        <!-- CONTENIDO DERECHO -->
+        <div class="col-md-10 p-5 position-relative">
+            
+            <!-- BOTÓN DE CERRAR SESIÓN FLOTANTE -->
+            <a href="/logout" title="Cerrar Sistema" style="position: absolute; top: 25px; right: 40px; z-index: 1000; font-size: 24px; color: var(--neon-red); text-shadow: 0 0 10px rgba(255,42,95,0.5); text-decoration: none; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+                <i class="bi bi-power"></i>
+            </a>
+
+            <div class="d-flex justify-content-between align-items-center mb-5">
+                <div>
+                    <h2 style="font-family: 'Orbitron', sans-serif;"><i class="bi bi-bar-chart-line text-info me-2"></i> Reportes e Inteligencia</h2>
+                    <p class="text-secondary mb-0">Estadísticas biométricas en tiempo real y auditoría operativa de la base militar.</p>
+                </div>
+                <span class="badge bg-dark border border-info text-info p-2 font-monospace" style="letter-spacing: 1px;">
+                    <i class="bi bi-cpu-fill"></i> NÚCLEO BIOMÉTRICO v2.4
+                </span>
+            </div>
+
+            <!-- MENSAJES FLASH (NOTIFICACIONES DE CIERRE DE GUARDIA) -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, msg in messages %}
+                    <div class="alert {% if category == 'success' %}alert-success{% else %}alert-danger{% endif %} text-start mb-4" 
+                         style="background: {% if category == 'success' %}rgba(4, 217, 118, 0.15){% else %}rgba(255, 42, 95, 0.15){% endif %}; 
+                                border: 1px solid {% if category == 'success' %}var(--neon-green){% else %}var(--neon-red){% endif %}; 
+                                color: var(--text-main); border-radius: 10px;">
+                        <i class="bi {% if category == 'success' %}bi-check-circle-fill text-success{% else %}bi-exclamation-triangle-fill text-danger{% endif %} me-2"></i> 
+                        {{ msg }}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- ROW 1: TARJETAS DE MÉTRICAS OPERATIVAS -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-3">
+                    <div class="glass-panel border-blue h-100 card-stat">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="text-secondary mb-0">Tropa Activa</h6>
+                            <i class="bi bi-people-fill text-info fs-4"></i>
+                        </div>
+                        <h2 class="text-white mt-3">{{ total_soldados }}</h2>
+                        <small class="text-muted">Total registrados no dados de baja</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="glass-panel border-green h-100 card-stat">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="text-secondary mb-0">Promedio Ingresos</h6>
+                            <i class="bi bi-box-arrow-in-right text-success fs-4"></i>
+                        </div>
+                        <h2 class="text-white mt-3">{{ promedio_entradas }}</h2>
+                        <small class="text-muted">Entradas diarias promedio</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="glass-panel border-yellow h-100 card-stat">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="text-secondary mb-0">Promedio Salidas</h6>
+                            <i class="bi bi-box-arrow-left text-warning fs-4"></i>
+                        </div>
+                        <h2 class="text-white mt-3">{{ promedio_salidas }}</h2>
+                        <small class="text-muted">Salidas diarias promedio</small>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="glass-panel border-red h-100 card-stat">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="text-secondary mb-0">Alertas Activas</h6>
+                            <i class="bi bi-shield-exclamation text-danger fs-4"></i>
+                        </div>
+                        <h2 class="text-white mt-3 {% if total_alertas > 0 %}blink-slow text-danger{% endif %}">{{ total_alertas }}</h2>
+                        <small class="text-muted">Salidas pendientes hoy/ayer</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 2: GRÁFICOS DE INTELIGENCIA -->
+            <div class="row g-4 mb-5">
+                <!-- Gráfico de Rango (Barra Horizontal) -->
+                <div class="col-md-6">
+                    <div class="glass-panel h-100" style="background: rgba(7, 11, 20, 0.45);">
+                        <h5 class="text-secondary mb-4"><i class="bi bi-award-fill text-warning me-2"></i> Distribución de Rangos</h5>
+                        <div style="height: 300px; display: flex; justify-content: center; align-items: center;">
+                            <canvas id="rangoChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Género y Sangre -->
+                <div class="col-md-3">
+                    <div class="glass-panel h-100" style="background: rgba(7, 11, 20, 0.45);">
+                        <h5 class="text-secondary mb-4"><i class="bi bi-gender-ambiguous text-info me-2"></i> Ratio de Género</h5>
+                        <div style="height: 220px; display: flex; justify-content: center; align-items: center;">
+                            <canvas id="generoChart"></canvas>
+                        </div>
+                        <div class="text-center mt-3 small font-monospace">
+                            <span class="text-info me-3"><i class="bi bi-square-fill"></i> Masc: {{ porcentaje_masc }}%</span>
+                            <span style="color: #ff5e7e;"><i class="bi bi-square-fill"></i> Fem: {{ porcentaje_fem }}%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="glass-panel h-100" style="background: rgba(7, 11, 20, 0.45);">
+                        <h5 class="text-secondary mb-4"><i class="bi bi-droplet-fill text-danger me-2"></i> Tipos de Sangre</h5>
+                        <div style="height: 300px; display: flex; justify-content: center; align-items: center;">
+                            <canvas id="sangreChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ROW 3: ALERTAS DE SEGURIDAD (SALIDAS FALTANTES Y PERMANENCIA OPERACIONAL) -->
+            <div class="glass-panel mb-5" style="border: 1px solid rgba(255, 42, 95, 0.2); background: rgba(7, 11, 20, 0.75);">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="text-danger font-monospace mb-1"><i class="bi bi-exclamation-triangle-fill"></i> ALERTAS DE GUARDIA: SALIDAS NO REGISTRADAS</h4>
+                        <p class="text-secondary small mb-0">Personal militar que registra entrada pero no ha marcado salida. Las alertas anteriores a la fecha actual representan permanencias irregulares que deben ser verificadas por el oficial de control.</p>
+                    </div>
+                    <span class="badge bg-danger text-white py-2 px-3 font-monospace blink-slow">ESTADO CRÍTICO</span>
+                </div>
+
+                {% if total_alertas > 0 %}
+                <div class="table-responsive">
+                    <table class="table table-cyber align-middle text-center w-100">
+                        <thead>
+                            <tr>
+                                <th>Grado y Nombre</th>
+                                <th>Cédula</th>
+                                <th>Fecha de Ingreso</th>
+                                <th>Hora Entrada</th>
+                                <th>Alerta Temporal</th>
+                                <th>Operación de Guardia</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for a in alertas %}
+                            <tr>
+                                <td class="text-start fw-bold text-white">{{ a.nombre }}</td>
+                                <td class="font-monospace text-secondary">{{ a.cedula }}</td>
+                                <td class="font-monospace">{{ a.fecha }}</td>
+                                <td class="font-monospace text-info">{{ a.hora_entrada }}</td>
+                                <td>
+                                    {% if a.es_hoy %}
+                                    <span class="badge bg-success border border-success text-white py-1 px-2">
+                                        <i class="bi bi-building"></i> En la Base (Hoy)
+                                    </span>
+                                    {% else %}
+                                    <span class="badge bg-danger border border-danger text-white py-1 px-2 blink-slow">
+                                        <i class="bi bi-clock-history"></i> Permanencia Inusual (Ayer o previo)
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <form action="/registrar_salida_manual" method="POST" style="margin: 0;">
+                                        <input type="hidden" name="asistencia_id" value="{{ a.asistencia_id }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-warning fw-bold border-warning py-1 px-3" 
+                                                style="background: rgba(248, 193, 2, 0.08); text-transform: uppercase; font-size: 11px; letter-spacing: 0.5px;">
+                                            <i class="bi bi-check-lg"></i> Cierre Manual
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center p-5 rounded border border-secondary" style="background: rgba(4, 217, 118, 0.05); border-style: dashed !important;">
+                    <i class="bi bi-shield-check text-success" style="font-size: 3rem;"></i>
+                    <h5 class="mt-3 text-success font-monospace">NÚCLEO SIN OPERACIONES PENDIENTES</h5>
+                    <p class="text-secondary small mb-0">No se detectan soldados con salida faltante en el calendario del sistema. Toda la tropa que ingresó ha registrado salida reglamentaria.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- ROW 4: CENTRO DE EXPORTACIÓN EXCEL -->
+            <div class="glass-panel text-center p-5" style="border: 1px solid var(--border-glow); background: rgba(7, 11, 20, 0.65);">
+                <div class="row align-items-center">
+                    <div class="col-md-8 text-start">
+                        <h4 style="font-family: 'Orbitron', sans-serif;"><i class="bi bi-file-earmark-excel text-success me-2"></i> Centro de Exportación Militar</h4>
+                        <p class="text-secondary mb-0">Genera una auditoría operacional exportando la base de datos completa de asistencia en un documento compatible con Microsoft Excel (.xlsx), estructurado con nombres, apellidos, rango y bitácora exacta de horas de control.</p>
+                    </div>
+                    <div class="col-md-4 mt-3 mt-md-0">
+                        <a href="/exportar_reporte_excel" class="btn-neon-green fs-5 w-100 py-3 d-flex align-items-center justify-content-center">
+                            <i class="bi bi-file-earmark-excel-fill me-2"></i> EXPORTAR EXCEL
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- SCRIPTS DE CHART.JS -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Configuración global de Chart.js para usar tipografía Orbitron/Inter y colores cyber
+    Chart.defaults.color = '#a0aec0';
+    Chart.defaults.font.family = "'Inter', sans-serif";
+
+    // 1. Gráfico de Distribución de Rango
+    const rangoCtx = document.getElementById('rangoChart').getContext('2d');
+    const rangosLabels = [{% for r in rangos %}'{{ r.rango }}',{% endfor %}];
+    const rangosData = [{% for r in rangos %}{{ r.cant }},{% endfor %}];
+    
+    new Chart(rangoCtx, {
+        type: 'bar',
+        data: {
+            labels: rangosLabels,
+            datasets: [{
+                label: 'Efectivos',
+                data: rangosData,
+                backgroundColor: 'rgba(0, 242, 254, 0.4)',
+                borderColor: 'var(--neon-blue)',
+                borderWidth: 1.5,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: {
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { precision: 0 }
+                },
+                y: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+
+    // 2. Gráfico de Distribución de Género
+    const generoCtx = document.getElementById('generoChart').getContext('2d');
+    new Chart(generoCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Masculino', 'Femenino'],
+            datasets: [{
+                data: [{{ masculino }}, {{ femenino }}],
+                backgroundColor: [
+                    'rgba(0, 242, 254, 0.75)',
+                    'rgba(255, 94, 126, 0.75)'
+                ],
+                borderColor: [
+                    'var(--neon-blue)',
+                    '#ff5e7e'
+                ],
+                borderWidth: 1.5,
+                hoverOffset: 8
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            cutout: '65%'
+        }
+    });
+
+    // 3. Gráfico de Tipos de Sangre
+    const sangreCtx = document.getElementById('sangreChart').getContext('2d');
+    const sangresLabels = [{% for s in sangres %}'{{ s.tipo_sangre }}',{% endfor %}];
+    const sangresData = [{% for s in sangres %}{{ s.cant }},{% endfor %}];
+
+    new Chart(sangreCtx, {
+        type: 'polarArea',
+        data: {
+            labels: sangresLabels,
+            datasets: [{
+                data: sangresData,
+                backgroundColor: [
+                    'rgba(255, 42, 95, 0.65)',
+                    'rgba(248, 193, 2, 0.65)',
+                    'rgba(4, 217, 118, 0.65)',
+                    'rgba(0, 242, 254, 0.65)',
+                    'rgba(155, 81, 224, 0.65)',
+                    'rgba(237, 137, 54, 0.65)',
+                    'rgba(56, 178, 172, 0.65)',
+                    'rgba(113, 128, 150, 0.65)'
+                ],
+                borderColor: 'rgba(7, 11, 20, 0.8)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                r: {
+                    grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                    angleLines: { color: 'rgba(255, 255, 255, 0.05)' },
+                    ticks: { display: false }
+                }
+            }
+        }
+    });
+</script>
+
+</body>
+</html>

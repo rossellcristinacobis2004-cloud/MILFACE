@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MILFACE - Galería Militar</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body data-theme="{{ app_config.tema_visual }}">
+
+<div class="container-fluid p-0">
+    <div class="row g-0">
+
+        <!-- MENÚ IZQUIERDO -->
+        <div class="col-md-2 sidebar d-flex flex-column">
+            <h3><i class="bi bi-shield-lock-fill"></i> MILFACE</h3>
+            <div class="mt-4">
+                <a href="/"><i class="bi bi-speedometer2"></i> Panel de Control</a>
+                <a href="/registrar"><i class="bi bi-person-plus-fill"></i> Registrar Personal Militar</a>
+                <a href="/soldados" style="border-left: 3px solid var(--neon-blue); background: rgba(0,242,254,0.1); color: var(--text-main);"><i class="bi bi-people-fill"></i> Galería Militar</a>
+                <a href="/asistencia"><i class="bi bi-card-checklist"></i> Asistencia</a>
+                <a href="/reporte"><i class="bi bi-file-earmark-excel-fill"></i> Reportes</a>
+                                
+                <h6 class="text-secondary mt-4 mb-2 ms-3" style="font-size: 12px; letter-spacing: 1px;">SISTEMA</h6>
+                <a href="/settings"><i class="bi bi-sliders"></i> Master Ajustes</a>
+                
+            </div>
+        </div>
+
+        <div class="col-md-10 p-5 position-relative">
+
+        <!-- BOTOÓN DE CERRAR SESIÓN FLOTANTE -->
+        <a href="/logout" title="Cerrar Sistema" class="glass-panel text-danger position-absolute d-flex align-items-center justify-content-center" style="top: 25px; right: 40px; z-index: 1000; padding: 10px 20px; border-radius: 12px; border: 1px solid var(--neon-red); text-decoration: none; transition: all 0.3s; background: rgba(255, 42, 95, 0.1);" onmouseover="this.style.background='var(--neon-red)'; this.style.color='#fff';" onmouseout="this.style.background='rgba(255, 42, 95, 0.1)'; this.style.color='';">
+            <i class="bi bi-power fs-4"></i> <span class="ms-2 fw-bold" style="letter-spacing: 1px;">APAGAR SISTEMA</span>
+        </a>
+
+            <div class="d-flex justify-content-between align-items-center mb-5">
+                <div>
+                    <h2 style="font-family: 'Orbitron', sans-serif;">Expedientes Activos</h2>
+                    <p class="text-muted">Registro visual de la unidad</p>
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages() %}
+              {% if messages %}
+                {% for message in messages %}
+                  <div class="alert alert-dark text-white border" style="background: rgba(0,0,0,0.5);">
+                    {{ message }}
+                  </div>
+                {% endfor %}
+              {% endif %}
+            {% endwith %}
+
+            <!-- GRILLA DE SOLDADOS -->
+            <div class="row g-4">
+                {% for s in soldados %}
+                <div class="col-md-3 col-sm-6">
+                    <div class="soldier-card">
+                        <!-- Verificar si tiene foto, si no mostrar avatar generico -->
+                        {% if s.foto_frente %}
+                            <img src="{{ url_for('servir_foto', filename=s.foto_frente.replace('fotos/', '').replace('fotos\\\\', '')) }}" alt="Foto">
+                        {% else %}
+                            <img src="https://via.placeholder.com/300x400/0d1423/00f2fe?text=Sin+Foto" alt="Sin Foto">
+                        {% endif %}
+                        
+                        
+                        <div class="soldier-info-bar">
+                            <button onclick="prepararBaja('{{ s.cedula }}')" class="btn btn-sm btn-outline-danger position-absolute top-0 end-0 m-2" style="background: rgba(0,0,0,0.5); z-index: 10;" title="Dar de Baja"><i class="bi bi-x-circle-fill"></i> Baja</button>
+                            <p class="rank">{{ s.rango }}</p>
+                            <p class="name">{{ s.nombre }} {{ s.apellidos }}</p>
+                            <p class="text-secondary small mt-1 mb-0"><i class="bi bi-fingerprint"></i> Cédula: {{ s.cedula }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12 text-center py-5">
+                    <i class="bi bi-cone-striped text-warning" style="font-size: 3rem;"></i>
+                    <h4 class="mt-3 text-white">No hay soldados registrados</h4>
+                    <p class="text-secondary">Usa el panel de registro para añadir personal a la base de datos.</p>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- ARCHIVO DE BAJAS -->
+            {% if soldados_baja %}
+            <div class="mt-5 pt-4 border-top border-danger">
+                <h3 class="text-danger mb-4" style="font-family: 'Orbitron', sans-serif;"><i class="bi bi-folder-x"></i> Archivo de Bajas (Deshabilitados)</h3>
+                <div class="row g-4">
+                    {% for sb in soldados_baja %}
+                    <div class="col-md-3 col-sm-6">
+                        <div class="soldier-card" style="border: 1px dashed var(--neon-red); filter: grayscale(70%);">
+                            {% if sb.foto_frente %}
+                                <img src="{{ url_for('servir_foto', filename=sb.foto_frente.replace('fotos/', '').replace('fotos\\\\', '')) }}" alt="Foto">
+                            {% else %}
+                                <img src="https://via.placeholder.com/300x400/200000/ff2a5f?text=BAJA" alt="Sin Foto">
+                            {% endif %}
+                            
+                            <div class="soldier-info-bar">
+                                <button onclick="prepararReincorporar('{{ sb.cedula }}')" class="btn btn-sm btn-outline-success position-absolute top-0 end-0 m-2" style="background: rgba(0,0,0,0.8); z-index: 10;" title="Ingresar Master Key"><i class="bi bi-shield-lock"></i> Reincorporar</button>
+                                <p class="rank text-danger">MISION FINALIZADA (BAJA)</p>
+                                <p class="name">{{ sb.nombre }} {{ sb.apellidos }}</p>
+                                <p class="text-secondary small mt-1 mb-0"><i class="bi bi-fingerprint"></i> Cédula: {{ sb.cedula }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+    </div>
+</div>
+
+
+<!-- Modal Baja -->
+<div class="modal fade" id="modalBaja" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-panel border-red">
+      <div class="modal-header border-bottom border-danger">
+        <h5 class="modal-title text-danger"><i class="bi bi-exclamation-triangle-fill"></i> Protocolo de Baja</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="/dar_baja" method="POST">
+          <div class="modal-body">
+            <p class="text-white">Está a punto de dar de baja al soldado seleccionado. Esta acción anulará sus credenciales de reconocimiento facial y lo removerá del control táctico activo.</p>
+            <input type="hidden" name="cedula" id="bajaCedula">
+            <div class="mb-3">
+                <label class="text-secondary mb-2">Obligatorio: Razón/Justificación de la Baja</label>
+                <textarea name="razon" class="form-control input-cyber" required rows="3" placeholder="Ej: Transferencia, Sanción Disciplinaria, Cese de funciones..."></textarea>
+            </div>
+          </div>
+          <div class="modal-footer border-top-0">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-danger">Confirmar Baja en Auditoría</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Reincorporar -->
+<div class="modal fade" id="modalReincorporar" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content glass-panel" style="border: 1px solid var(--neon-blue);">
+      <div class="modal-header border-bottom" style="border-color: var(--neon-blue) !important;">
+        <h5 class="modal-title" style="color: var(--neon-blue);"><i class="bi bi-shield-check"></i> Autorización de Comandante Requerida</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form action="/reincorporar" method="POST">
+          <div class="modal-body">
+            <p class="text-white">Para reintegrar al soldado al estado de alta militar y reentrenar la Inteligencia Artificial Biométrica, inserte la Llave Maestra del sistema central.</p>
+            <input type="hidden" name="cedula" id="reincorporarCedula">
+            <div class="mb-3 mt-4">
+                <label class="text-secondary mb-2">Master Key (Clave del Comandante)</label>
+                <input type="password" name="llave" class="form-control input-cyber" required placeholder="*****************">
+            </div>
+          </div>
+          <div class="modal-footer border-top-0">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Abortar</button>
+            <button type="submit" class="btn btn-primary" style="background-color: var(--neon-blue); border: none;">EJECUTAR REINCORPORACIÓN</button>
+          </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+function prepararBaja(cedula) {
+    document.getElementById('bajaCedula').value = cedula;
+    var myModal = new bootstrap.Modal(document.getElementById('modalBaja'));
+    myModal.show();
+}
+
+function prepararReincorporar(cedula) {
+    document.getElementById('reincorporarCedula').value = cedula;
+    var myModal = new bootstrap.Modal(document.getElementById('modalReincorporar'));
+    myModal.show();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MILFACE - Centro de Mando</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body data-theme="{{ app_config.tema_visual }}">
+
+<div class="container-fluid p-0">
+    <div class="row g-0">
+
+        <!-- MENÚ IZQUIERDO -->
+        <div class="col-md-2 sidebar d-flex flex-column">
+            <h3><i class="bi bi-shield-lock-fill"></i> MILFACE</h3>
+            <div class="mt-4">
+                <a href="/" style="border-left: 3px solid var(--neon-blue); background: rgba(0,242,254,0.1); color: var(--text-main);"><i class="bi bi-speedometer2"></i> Panel de Control</a>
+                <a href="/registrar"><i class="bi bi-person-plus-fill"></i> Registrar Personal Militar</a>
+                <a href="/soldados"><i class="bi bi-people-fill"></i> Galería Militar</a>
+                <a href="/asistencia"><i class="bi bi-card-checklist"></i> Asistencia</a>
+                <a href="/reporte"><i class="bi bi-file-earmark-excel-fill"></i> Reportes</a>
+                                
+                <h6 class="text-secondary mt-4 mb-2 ms-3" style="font-size: 12px; letter-spacing: 1px;">SISTEMA</h6>
+                <a href="/settings"><i class="bi bi-sliders"></i> Master Ajustes</a>
+                
+            </div>
+        </div>
+
+        <div class="col-md-10 p-5 position-relative">
+
+            <!-- BOTOÓN DE CERRAR SESIÓN FLOTANTE -->
+            <a href="/logout" title="Cerrar Sistema" class="glass-panel text-danger position-absolute d-flex align-items-center justify-content-center" style="top: 25px; right: 40px; z-index: 1000; padding: 10px 20px; border-radius: 12px; border: 1px solid var(--neon-red); text-decoration: none; transition: all 0.3s; background: rgba(255, 42, 95, 0.1);" onmouseover="this.style.background='var(--neon-red)'; this.style.color='#fff';" onmouseout="this.style.background='rgba(255, 42, 95, 0.1)'; this.style.color='';">
+                <i class="bi bi-power fs-4"></i> <span class="ms-2 fw-bold" style="letter-spacing: 1px;">APAGAR SISTEMA</span>
+            </a>
+
+            <div class="d-flex justify-content-between align-items-center mb-5">
+                <h2 style="font-family: 'Orbitron', sans-serif;">Centro de Operaciones</h2>
+                <span class="badge bg-dark border border-success text-success p-2">
+                    <i class="bi bi-circle-fill text-success"></i> Sistema Activo
+                </span>
+            </div>
+
+            <div class="row g-4 mt-2">
+                <!-- TARJETA: Soldados -->
+                <div class="col-md-3">
+                    <div class="glass-panel border-blue h-100" style="cursor: pointer;" onclick="window.location.href='/soldados'">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5>Personal de Tropa</h5>
+                            <i class="bi bi-people-fill fs-3 text-secondary"></i>
+                        </div>
+                        <h2 class="text-white">{{ total_soldados }}</h2>
+                        <small class="text-muted"><i class="bi bi-arrow-right-short"></i> Ver galería completa</small>
+                    </div>
+                </div>
+
+                <!-- TARJETA: Asistencias -->
+                <div class="col-md-3">
+                    <div class="glass-panel border-green h-100" style="cursor: pointer;" onclick="window.location.href='/asistencia'">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5>Asistencia Diaria</h5>
+                            <i class="bi bi-activity fs-3 text-secondary"></i>
+                        </div>
+                        <h2 class="text-white">{{ asistencias_hoy }}</h2>
+                        <small class="text-muted"><i class="bi bi-search"></i> Explorar registros</small>
+                    </div>
+                </div>
+
+                <!-- TARJETA: Entradas -->
+                <div class="col-md-3">
+                    <div class="glass-panel border-yellow h-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5>Ingresos Confirmados</h5>
+                            <i class="bi bi-box-arrow-in-right fs-3 text-secondary"></i>
+                        </div>
+                        <h2 class="text-white">{{ entradas }}</h2>
+                    </div>
+                </div>
+
+                <!-- TARJETA: Salidas -->
+                <div class="col-md-3">
+                    <div class="glass-panel border-red h-100">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h5>Salidas Registradas</h5>
+                            <i class="bi bi-box-arrow-left fs-3 text-secondary"></i>
+                        </div>
+                        <h2 class="text-white">{{ salidas }}</h2>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GRAFICAS DE INTELIGENCIA -->
+            <div class="row g-4 mt-4">
+                <div class="col-md-6">
+                    <div class="glass-panel" style="background: rgba(7, 11, 20, 0.4);">
+                        <h5 class="text-secondary mb-4"><i class="bi bi-pie-chart-fill text-info me-2"></i> Distribución de Efectivos Hoy</h5>
+                        <!-- Esconder variables para el script -->
+                        <span id="dataTotal" style="display:none;">{{ total_soldados }}</span>
+                        <span id="dataEntradas" style="display:none;">{{ entradas }}</span>
+                        <span id="dataSalidas" style="display:none;">{{ salidas }}</span>
+                        
+                        <div style="height: 250px; display: flex; justify-content: center;">
+                            <canvas id="tropaChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+                 <div class="col-md-6">
+                    <!-- Decoración extra cibernética -->
+                    <div class="glass-panel d-flex flex-column justify-content-center align-items-center h-100" style="background: rgba(0, 242, 254, 0.05); border: 1px dashed var(--neon-blue);">
+                        <i class="bi bi-radar text-info" style="font-size: 4rem; animation: scan 4s infinite linear;"></i>
+                        <h4 class="mt-3 text-info font-monospace">MONITOREO EN CURSO</h4>
+                        <p class="text-secondary small">Escaneo biométrico global configurado y en espera.</p>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<div class="glass-panel" style="position: fixed; bottom: 20px; right: 30px; padding: 10px 20px; z-index: 999; cursor: pointer;" onclick="activarReconocimiento()">
+    <i class="bi bi-camera-video text-info me-2"></i>
+    <span style="color: #00f2fe; font-family: 'Orbitron', monospace; font-size: 14px;">Tecla [ J ] para Escaneo en Vivo</span>
+</div>
+
+<!-- Chart.js para las gráficas -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+// 1. VOZ DEL TIPO GLaDOS / IA AL INICIAR
+// Dado que el navegador a veces bloquea el auto-play de voz sin que el usuario haga clic,
+// si no suena al cargar, sonará al hacer cualquier clic en el index por primera vez.
+let iaHaHablado = false;
+function hablarIA() {
+    if (!iaHaHablado) {
+        let voz = new SpeechSynthesisUtterance("{{ app_config.saludo_ia }}");
+        voz.lang = 'es-ES';
+        voz.pitch = 0.8; // Más robótico/grave
+        voz.rate = 0.9;
+        window.speechSynthesis.speak(voz);
+        iaHaHablado = true;
+    }
+}
+window.onload = hablarIA;
+document.body.addEventListener('click', hablarIA);
+
+// 2. ATAJO RECONOCIMIENTO - MODO WEB FLOTANTE
+let reconocimientoActivo = false;
+let escaneoInterval = null;
+
+function activarReconocimiento() {
+    if (reconocimientoActivo) return; // Ya está activo
+    reconocimientoActivo = true;
+
+    let aud = new SpeechSynthesisUtterance("Iniciando cámaras de seguridad biométrica local.");
+    window.speechSynthesis.speak(aud);
+
+    // Crear un contenedor flotante para la cámara
+    let camContainer = document.createElement('div');
+    camContainer.id = "camaraFlotante";
+    camContainer.innerHTML = `
+        <div class="glass-panel mt-3 shadow-lg" style="position:fixed; top:20px; right:20px; z-index: 2000; padding:15px; text-align:center; background: rgba(7, 11, 20, 0.95); border: 1px solid var(--neon-blue); border-radius: 12px;">
+            <video id="reconocimientoVideo" width="320" autoplay playsinline style="border-radius: 8px; transform: scaleX(-1); border: 2px solid var(--neon-blue); margin-bottom: 10px;"></video>
+            <canvas id="reconocimientoCanvas" style="display:none;"></canvas>
+            <p id="reconocimientoStatus" class="font-monospace text-info mb-2 mt-2" style="font-size:14px; font-weight: bold; letter-spacing: 1px;">INICIANDO ESCÁNER...</p>
+            <button class="btn btn-sm btn-outline-danger w-100" onclick="detenerReconocimiento()">CERRAR ESCÁNER</button>
+        </div>
+    `;
+    document.body.appendChild(camContainer);
+
+    const video = document.getElementById('reconocimientoVideo');
+    const canvas = document.getElementById('reconocimientoCanvas');
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+            // Iniciar ciclo de captura cada 1.5 segundos
+            escaneoInterval = setInterval(() => procesarFrame(video, canvas), 1500);
+        })
+        .catch(err => {
+            alert("No se pudo acceder a la cámara. Revisa los permisos de tu navegador.");
+            detenerReconocimiento();
+        });
+}
+
+function detenerReconocimiento() {
+    reconocimientoActivo = false;
+    clearInterval(escaneoInterval);
+    const video = document.getElementById('reconocimientoVideo');
+    if (video && video.srcObject) {
+        video.srcObject.getTracks().forEach(track => track.stop());
+    }
+    const container = document.getElementById('camaraFlotante');
+    if (container) container.remove();
+}
+
+function procesarFrame(video, canvas) {
+    if (!reconocimientoActivo) return;
+    
+    // Dibujar frame
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    let ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    
+    let dataURL = canvas.toDataURL('image/jpeg', 0.8);
+
+    fetch("/api/reconocer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imagen: dataURL })
+    })
+    .then(r => r.json())
+    .then(data => {
+        let statusEl = document.getElementById("reconocimientoStatus");
+        if (data.status === "exito") {
+            let labelSexo = data.sexo ? data.sexo.toUpperCase() : "";
+            let tagSexo = labelSexo ? `[${labelSexo}] ` : "";
+            statusEl.innerHTML = `<span class="text-success"><i class="bi bi-person-check-fill"></i> ${tagSexo}${data.nombre} - REGISTRADO</span>`;
+            
+            let personalStr = data.sexo === "Femenino" ? "personal femenino" : (data.sexo === "Masculino" ? "personal masculino" : "");
+            
+            if (data.novedad === "entrada") {
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance("Entrada registrada para " + data.nombre + ", " + personalStr));
+            } else if (data.novedad === "salida") {
+                window.speechSynthesis.speak(new SpeechSynthesisUtterance("Salida registrada para " + data.nombre + ", " + personalStr));
+            }
+            // Si data.novedad === "ya_registro", no interrumpir ni molestar
+        } else if (data.status === "alerta_baja") {
+            statusEl.innerHTML = `<span class="text-danger fw-bold" style="animation: blinker 1s linear infinite; text-shadow: 0 0 15px red;"><i class="bi bi-shield-slash-fill"></i> ACCESO DENEGADO: ${data.nombre.toUpperCase()} (BAJA)</span>`;
+            if (!window.ultimaAlerta || Date.now() - window.ultimaAlerta > 5000) {
+                let msg = new SpeechSynthesisUtterance("Alerta de seguridad extrema. Acceso denegado. Personal de baja detectado en instalaciones.");
+                msg.pitch = 0.5;
+                msg.rate = 1.1;
+                window.speechSynthesis.speak(msg);
+                window.ultimaAlerta = Date.now();
+            }
+        } else if (data.status === "desconocido") {
+            statusEl.innerHTML = `<span class="text-danger"><i class="bi bi-exclamation-triangle-fill"></i> DETECTADO: DESCONOCIDO</span>`;
+        } else {
+            statusEl.innerHTML = `<span class="text-secondary"><i class="bi bi-radar"></i> BUSCANDO OBJETIVOS...</span>`;
+        }
+    }).catch(e => console.log(e));
+}
+
+document.addEventListener("keydown", function(event) {
+    if (event.key.toLowerCase() === "j") {
+        if (!reconocimientoActivo) activarReconocimiento();
+        else detenerReconocimiento();
+    }
+});
+
+// 3. GRÁFICAS CHART.JS
+let total = parseInt(document.getElementById('dataTotal').innerText) || 0;
+let entradas = parseInt(document.getElementById('dataEntradas').innerText) || 0;
+let salidas = parseInt(document.getElementById('dataSalidas').innerText) || 0;
+
+let enBase = entradas - salidas;
+if (enBase < 0) enBase = 0;
+let fueraBase = total - enBase;
+
+const ctx = document.getElementById('tropaChart').getContext('2d');
+const tropaChart = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+        labels: ['En la Base', 'Fuera de la Base'],
+        datasets: [{
+            data: [enBase, fueraBase],
+            backgroundColor: [
+                'rgba(4, 217, 118, 0.8)', // Verde
+                'rgba(255, 42, 95, 0.8)'  // Rojo
+            ],
+            borderColor: [
+                '#04d976',
+                '#ff2a5f'
+            ],
+            borderWidth: 1,
+            hoverOffset: 10
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'right',
+                labels: {
+                    color: '#f0f8ff',
+                    font: { family: 'Orbitron', size: 14 }
+                }
+            }
+        }
+    }
+});
+</script>
+
+</body>
+</html>

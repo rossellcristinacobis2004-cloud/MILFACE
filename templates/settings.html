@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MILFACE - Master Config</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body data-theme="{{ app_config.tema_visual }}">
+
+<div class="container-fluid p-0">
+    <div class="row g-0">
+
+        <!-- MENÚ IZQUIERDO -->
+        <div class="col-md-2 sidebar d-flex flex-column" style="min-height: 100vh;">
+            <h3><i class="bi bi-shield-lock-fill"></i> MILFACE</h3>
+            <div class="mt-4">
+                <a href="/"><i class="bi bi-speedometer2"></i> Panel de Control</a>
+                <a href="/registrar"><i class="bi bi-person-plus-fill"></i> Registrar Personal Militar</a>
+                <a href="/soldados"><i class="bi bi-people-fill"></i> Galería Militar</a>
+                <a href="/asistencia"><i class="bi bi-card-checklist"></i> Asistencia</a>
+                <a href="/reporte"><i class="bi bi-file-earmark-excel-fill"></i> Reportes</a>
+                
+                <h6 class="text-secondary mt-4 mb-2 ms-3" style="font-size: 12px; letter-spacing: 1px;">SISTEMA</h6>
+                <a href="/settings" style="border-left: 3px solid var(--neon-blue); background: rgba(0,242,254,0.1); color: var(--text-main);"><i class="bi bi-sliders"></i> Master Ajustes</a>
+                
+            </div>
+        </div>
+
+        <!-- CONTENIDO DERECHO -->
+        <!-- BOTOÓN DE CERRAR SESIÓN FLOTANTE -->
+        <a href="/logout" title="Cerrar Sistema" style="position: absolute; top: 25px; right: 40px; z-index: 1000; font-size: 24px; color: var(--neon-red); text-shadow: 0 0 10px rgba(255,42,95,0.5); text-decoration: none; transition: transform 0.3s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+            <i class="bi bi-power"></i>
+        </a>
+
+        <div class="col-md-10 p-5">
+
+            <div class="d-flex justify-content-between align-items-center mb-5">
+                <div>
+                    <h2 style="font-family: 'Orbitron', sans-serif;">Configuración Global</h2>
+                    <p class="text-muted">Ajustes visuales y verbales del cerebro artificial</p>
+                </div>
+            </div>
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for msg in messages %}
+                    <div class="alert alert-success bg-transparent border-success text-success p-3 rounded mb-4">
+                        <i class="bi bi-check2-circle me-2"></i> {{ msg }}
+                    </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <div class="glass-panel" style="max-width: 600px;">
+                <form method="POST" action="/settings">
+                    
+                    <!-- AJUSTE DE TEMA -->
+                    <div class="mb-4">
+                        <h5 class="text-white mb-3"><i class="bi bi-palette text-info me-2"></i> Experiencia Visual</h5>
+                        
+                        <div class="d-flex gap-3">
+                            <label class="glass-panel text-center flex-fill p-3 border {% if app_config.tema_visual == 'dark' %}border-info shadow{% else %}border-secondary{% endif %}" style="cursor: pointer;">
+                                <input type="radio" name="tema_visual" value="dark" class="d-none" {% if app_config.tema_visual == 'dark' %}checked{% endif %}>
+                                <i class="bi bi-moon-stars-fill fs-3 text-info"></i>
+                                <p class="mb-0 mt-2 text-white">Modo Táctico<br><small class="text-secondary">Oscuro + Cyan</small></p>
+                            </label>
+
+                            <label class="glass-panel text-center flex-fill p-3 border {% if app_config.tema_visual == 'light' %}border-info shadow{% else %}border-secondary{% endif %}" style="background: rgba(255,255,255,0.8); cursor: pointer;">
+                                <input type="radio" name="tema_visual" value="light" class="d-none" {% if app_config.tema_visual == 'light' %}checked{% endif %}>
+                                <i class="bi bi-brightness-high-fill fs-3" style="color: #9b51e0;"></i>
+                                <p class="mb-0 mt-2" style="color: #2d3748;">Modo Ejecutivo<br><small style="color: #805ad5;">Claro + Violeta</small></p>
+                            </label>
+                        </div>
+                    </div>
+
+                    <hr class="border-secondary my-4">
+
+                    <!-- AJUSTE DE VOZ -->
+                    <div class="mb-4">
+                        <h5 class="text-white mb-3"><i class="bi bi-mic text-info me-2"></i> Sintetizador de Voz (GLaDOS)</h5>
+                        <label class="text-secondary mb-2">Frase al iniciar el panel de control:</label>
+                        <textarea name="saludo_ia" rows="3" class="form-control input-cyber">{{ app_config.saludo_ia }}</textarea>
+                        <small class="text-muted d-block mt-2">Dile al sistema cómo quieres que te llame al iniciar sesión exitosamente.</small>
+                    </div>
+
+                    <button type="submit" class="btn-neon-green mt-3 w-100 fs-5"><i class="bi bi-save me-2"></i> Aplicar Cambios Globales</button>
+                </form>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<script>
+// Toggle select visuals for radios
+const radios = document.querySelectorAll('input[type="radio"]');
+radios.forEach(radio => {
+    radio.addEventListener('change', function() {
+        // Reset all
+        document.querySelectorAll('label.glass-panel').forEach(lbl => {
+            lbl.classList.remove('border-info', 'shadow');
+            lbl.classList.add('border-secondary');
+        });
+        // Highlight active
+        this.parentElement.classList.remove('border-secondary');
+        this.parentElement.classList.add('border-info', 'shadow');
+    });
+});
+</script>
+
+</body>
+</html>

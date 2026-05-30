@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>MILFACE - Asistencia</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+
+<body data-theme="{{ app_config.tema_visual }}">
+
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+
+            <!-- MENÚ IZQUIERDO -->
+            <div class="col-md-2 sidebar d-flex flex-column">
+                <h3><i class="bi bi-shield-lock-fill"></i> MILFACE</h3>
+                <div class="mt-4">
+                    <a href="/"><i class="bi bi-speedometer2"></i> Panel de Control</a>
+                    <a href="/registrar"><i class="bi bi-person-plus-fill"></i> Registrar Personal Militar</a>
+                    <a href="/soldados"><i class="bi bi-people-fill"></i> Galería Militar</a>
+                    <a href="/asistencia"
+                        style="border-left: 3px solid var(--neon-blue); background: rgba(0,242,254,0.1); color: var(--text-main);"><i
+                            class="bi bi-card-checklist"></i> Asistencia</a>
+                    <a href="/reporte"><i class="bi bi-file-earmark-excel-fill"></i> Reportes</a>
+
+                    <h6 class="text-secondary mt-4 mb-2 ms-3" style="font-size: 12px; letter-spacing: 1px;">SISTEMA</h6>
+                    <a href="/settings"><i class="bi bi-sliders"></i> Master Ajustes</a>
+
+                </div>
+            </div>
+
+            <!-- CONTENIDO DERECHO -->
+            <!-- BOTOÓN DE CERRAR SESIÓN FLOTANTE -->
+            <a href="/logout" title="Cerrar Sistema"
+                style="position: absolute; top: 25px; right: 40px; z-index: 1000; font-size: 24px; color: var(--neon-red); text-shadow: 0 0 10px rgba(255,42,95,0.5); text-decoration: none; transition: transform 0.3s;"
+                onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+                <i class="bi bi-power"></i>
+            </a>
+
+            <div class="col-md-10 p-5">
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h2 style="font-family: 'Orbitron', sans-serif;">Registro de Acceso</h2>
+                        <p class="text-muted">Bitácora de todos los ingresos y salidas</p>
+                    </div>
+
+                    <!-- BUSCADOR -->
+                    <div class="d-flex align-items-center bg-dark rounded ps-3"
+                        style="border: 1px solid rgba(0, 242, 254, 0.4); width: 350px;">
+                        <i class="bi bi-search text-info"></i>
+                        <input type="text" id="buscadorJS"
+                            class="form-control bg-transparent border-0 text-white shadow-none"
+                            placeholder="Buscar cédula, fecha o nombre...">
+                    </div>
+                </div>
+
+                <!-- TABLA -->
+                <div class="glass-panel" style="padding: 0;">
+                    <table class="table table-cyber mb-0" id="tablaAsistencia">
+                        <thead>
+                            <tr>
+                                <th>CÉDULA</th>
+                                <th>NOMBRE CLAVE</th>
+                                <th>FECHA</th>
+                                <th>H. ENTRADA</th>
+                                <th>H. SALIDA</th>
+                                <th>ESTADO</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for fila in asistencia %}
+                            <tr class="fila-dato">
+                                <td class="text-info fw-bold">{{ fila.cedula }}</td>
+                                <td>{{ fila.nombre }}</td>
+                                <td><i class="bi bi-calendar3 me-2 text-secondary"></i>{{ fila.fecha }}</td>
+                                <td><i class="bi bi-box-arrow-in-right me-2 text-warning"></i>{{ fila.hora_entrada or
+                                    '--' }}</td>
+                                <td><i class="bi bi-box-arrow-left me-2 text-danger"></i>{{ fila.hora_salida or '--' }}
+                                </td>
+                                <td>
+                                    {% if fila.estado == "Dentro" %}
+                                    <span class="badge border border-success text-success bg-transparent"><i
+                                            class="bi bi-record-circle-fill"></i> DENTRO</span>
+                                    {% elif fila.estado == "Fuera" %}
+                                    <span class="badge border border-danger text-danger bg-transparent"><i
+                                            class="bi bi-x-circle-fill"></i> FUERA</span>
+                                    {% else %}
+                                    <span
+                                        class="badge border border-secondary text-secondary bg-transparent">DESCONOCIDO</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // Buscador en Tiempo Real
+        document.getElementById('buscadorJS').addEventListener('keyup', function () {
+            let filtro = this.value.toLowerCase();
+            let filas = document.querySelectorAll('.fila-dato');
+
+            filas.forEach(function (fila) {
+                let textoFila = fila.innerText.toLowerCase();
+                if (textoFila.includes(filtro)) {
+                    fila.style.display = '';
+                } else {
+                    fila.style.display = 'none';
+                }
+            });
+        });
+    </script>
+
+</body>
+
+</html>
