@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MILFACE - Registro del Administrador</title>
+    <meta name="description" content="Registro inicial del Administrador Máster del Sistema MILFACE">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        body {
+            background: #070b14;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+        #particles-js {
+            position: fixed;
+            width: 100%; height: 100%;
+            top: 0; left: 0;
+            z-index: 0;
+            background-color: #070b14;
+        }
+        .master-box {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 780px;
+            background: rgba(7, 11, 20, 0.82);
+            backdrop-filter: blur(18px);
+            border: 1px solid rgba(255, 200, 0, 0.35);
+            border-radius: 18px;
+            box-shadow: 0 0 60px rgba(255, 200, 0, 0.12), 0 0 120px rgba(0, 242, 254, 0.05);
+            padding: 48px;
+        }
+        .gold-title {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 1.6rem;
+            background: linear-gradient(135deg, #ffd700, #ffaa00, #ffe066);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 2px;
+            text-align: center;
+        }
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin: 24px 0 36px;
+        }
+        .step-dot {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 14px;
+            border: 2px solid rgba(255,200,0,0.3);
+            color: #888;
+            transition: all 0.4s;
+        }
+        .step-dot.active {
+            background: rgba(255,200,0,0.15);
+            border-color: #ffd700;
+            color: #ffd700;
+            box-shadow: 0 0 16px rgba(255,200,0,0.4);
+        }
+        .step-dot.done {
+            background: rgba(4, 217, 118, 0.15);
+            border-color: #04d976;
+            color: #04d976;
+        }
+        .step-line {
+            flex: 1; height: 2px;
+            background: rgba(255,200,0,0.15);
+            max-width: 80px;
+        }
+        .gold-input {
+            background: rgba(13, 20, 35, 0.8);
+            border: 1px solid rgba(255, 200, 0, 0.25);
+            color: #f0f8ff;
+            border-radius: 8px;
+            padding: 12px 15px;
+            width: 100%;
+            transition: all 0.3s;
+        }
+        .gold-input:focus {
+            outline: none;
+            border-color: #ffd700;
+            box-shadow: 0 0 12px rgba(255, 200, 0, 0.2);
+            background: rgba(13, 20, 35, 0.95);
+            color: #f0f8ff;
+        }
+        .gold-input option { background: #0d1423; color: #f0f8ff; }
+        .gold-label { color: #aab3c2; font-size: 13px; margin-bottom: 6px; letter-spacing: 0.5px; }
+        .btn-gold {
+            background: rgba(255, 200, 0, 0.12);
+            border: 1px solid #ffd700;
+            color: #ffd700;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn-gold:hover {
+            background: #ffd700;
+            color: #070b14;
+            box-shadow: 0 0 24px rgba(255, 200, 0, 0.5);
+        }
+        /* Cámara */
+        .scanner-frame {
+            position: relative;
+            display: inline-block;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid rgba(255,200,0,0.3);
+        }
+        .scanner-line {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 2px;
+            background: #ffd700;
+            box-shadow: 0 0 12px #ffd700;
+            animation: scan 3s infinite linear;
+            z-index: 10;
+        }
+        .corner { position: absolute; width: 36px; height: 36px; border: 3px solid #ffd700; z-index: 5; }
+        .c-tl { top: 8px; left: 8px; border-right: none; border-bottom: none; }
+        .c-tr { top: 8px; right: 8px; border-left: none; border-bottom: none; }
+        .c-bl { bottom: 8px; left: 8px; border-right: none; border-top: none; }
+        .c-br { bottom: 8px; right: 8px; border-left: none; border-top: none; }
+        @keyframes scan { 0% { top: 0%; } 50% { top: 100%; } 100% { top: 0%; } }
+        .component-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            border: 1px solid rgba(255,200,0,0.4);
+            color: #ffd700;
+            background: rgba(255,200,0,0.08);
+            margin-bottom: 16px;
+        }
+    </style>
+</head>
+<body>
+<div id="particles-js"></div>
+
+<div class="master-box my-5">
+
+    <!-- ENCABEZADO -->
+    <div class="text-center mb-2">
+        <i class="bi bi-star-fill" style="font-size:2.5rem; color:#ffd700; text-shadow: 0 0 20px rgba(255,200,0,0.6);"></i>
+    </div>
+    <h1 class="gold-title">REGISTRO DEL ADMINISTRADOR</h1>
+    <p class="text-center text-secondary mt-2 mb-0" style="font-size:13px; letter-spacing:1px;">SISTEMA MILFACE — PRIMERA CONFIGURACIÓN</p>
+
+    <!-- MENSAJES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, msg in messages %}
+            <div class="mt-3 p-3 rounded" style="background: rgba(255,42,95,0.1); border: 1px solid #ff2a5f; color: #f0f8ff;">
+                <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i> {{ msg }}
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- INDICADOR DE PASOS -->
+    <div class="step-indicator">
+        <div class="step-dot {% if not cedula %}active{% else %}done{% endif %}" id="dot1">
+            {% if cedula %}<i class="bi bi-check-lg"></i>{% else %}1{% endif %}
+        </div>
+        <div class="step-line"></div>
+        <div class="step-dot {% if cedula %}active{% endif %}" id="dot2">2</div>
+        <div class="step-line"></div>
+        <div class="step-dot" id="dot3">3</div>
+    </div>
+
+    {% if not cedula %}
+    <!-- ======================== PASO 1: FORMULARIO ======================== -->
+    <div class="text-center mb-4">
+        <p class="text-secondary" style="font-size:14px;">Complete los datos del Administrador del Sistema</p>
+    </div>
+
+    <form method="POST" action="/registro_master" id="form-master">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="gold-label">Nombres *</label>
+                <input type="text" name="nombre" id="nombre" class="gold-input" required placeholder="Ej. Juan Carlos">
+            </div>
+            <div class="col-md-6">
+                <label class="gold-label">Apellidos *</label>
+                <input type="text" name="apellidos" id="apellidos" class="gold-input" required placeholder="Ej. Pérez González">
+            </div>
+            <div class="col-md-6">
+                <label class="gold-label">Cédula de Identidad *</label>
+                <input type="text" name="cedula" id="cedula" class="gold-input" required placeholder="Ej. 12345678">
+            </div>
+            <div class="col-md-6">
+                <label class="gold-label">Componente de la FANB *</label>
+                <select name="componente" id="componente" class="gold-input" required onchange="actualizarRangos()">
+                    <option value="" disabled selected>Seleccione Componente</option>
+                    <option value="Ejército Bolivariano">🪖 Ejército Bolivariano</option>
+                    <option value="Armada Bolivariana">⚓ Armada Bolivariana</option>
+                    <option value="Aviación Militar Bolivariana">✈️ Aviación Militar Bolivariana</option>
+                    <option value="Guardia Nacional Bolivariana">🛡️ Guardia Nacional Bolivariana</option>
+                    <option value="Milicia Bolivariana">⭐ Milicia Bolivariana</option>
+                </select>
+            </div>
+            <div class="col-12">
+                <label class="gold-label">Grado / Rango *</label>
+                <select name="rango" id="rango" class="gold-input" required>
+                    <option value="" disabled selected>— Seleccione primero un Componente —</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center mt-5">
+            <button type="submit" class="btn-gold" id="btn-continuar">
+                <i class="bi bi-arrow-right-circle me-2"></i> CONTINUAR A BIOMETRÍA
+            </button>
+        </div>
+    </form>
+
+    {% else %}
+    <!-- ======================== PASO 2: CAPTURA BIOMÉTRICA ======================== -->
+    <div class="text-center mb-4">
+        <div class="component-badge" id="badge-componente">Cargando datos...</div>
+        <p class="text-secondary" style="font-size:14px;">Capture el perfil biométrico del Administrador en 3 ángulos</p>
+    </div>
+
+    <div class="text-center">
+        <div class="scanner-frame">
+            <div class="corner c-tl"></div>
+            <div class="corner c-tr"></div>
+            <div class="corner c-bl"></div>
+            <div class="corner c-br"></div>
+            <div class="scanner-line"></div>
+            <video id="videoElement" width="420" autoplay playsinline style="display:block; border-radius:10px; transform:scaleX(-1);"></video>
+            <canvas id="canvasElement" style="display:none;"></canvas>
+        </div>
+
+        <div class="mt-4 d-flex justify-content-center gap-3">
+            <button class="btn-gold" onclick="capturar('frente')" id="btn-frente"><i class="bi bi-camera"></i> FRENTE</button>
+            <button class="btn-gold" onclick="capturar('derecha')" id="btn-derecha"><i class="bi bi-camera"></i> DERECHA</button>
+            <button class="btn-gold" onclick="capturar('izquierda')" id="btn-izquierda"><i class="bi bi-camera"></i> IZQUIERDA</button>
+        </div>
+
+        <div class="d-flex justify-content-around mt-4 p-3 rounded" style="background: rgba(255,200,0,0.04); border:1px solid rgba(255,200,0,0.15);">
+            <span id="ind-frente" class="text-secondary"><i class="bi bi-x-circle text-danger"></i> FRENTE</span>
+            <span id="ind-derecha" class="text-secondary"><i class="bi bi-x-circle text-danger"></i> DERECHA</span>
+            <span id="ind-izquierda" class="text-secondary"><i class="bi bi-x-circle text-danger"></i> IZQUIERDA</span>
+        </div>
+
+        <p id="mensaje" class="mt-3 font-monospace" style="color:#ffd700; min-height:24px;">Activando cámara biométrica...</p>
+
+        <div class="mt-4">
+            <a id="btn-verificar" href="/verificar_master" class="btn-gold" style="display:none; text-decoration:none;">
+                <i class="bi bi-shield-check me-2"></i> GUARDAR Y VERIFICAR IDENTIDAD
+            </a>
+        </div>
+    </div>
+
+    <script>
+    const cedula = "{{ cedula }}";
+    let fotos = { frente: false, derecha: false, izquierda: false };
+    const video = document.getElementById('videoElement');
+    const canvas = document.getElementById('canvasElement');
+
+    // Cargar datos del master para el badge
+    fetch('/api/datos_master_pendiente?cedula=' + cedula)
+        .then(r => r.json()).then(d => {
+            if (d.componente) {
+                document.getElementById('badge-componente').textContent = d.rango + ' — ' + d.componente;
+            }
+        }).catch(() => {
+            document.getElementById('badge-componente').textContent = 'Administrador del Sistema';
+        });
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+            video.srcObject = stream;
+            document.getElementById('mensaje').textContent = '[SISTEMA]: Cámara activa. Listo para captura biométrica.';
+        })
+        .catch(err => {
+            document.getElementById('mensaje').textContent = '[ERROR]: Permite el acceso a la cámara.';
+            document.getElementById('mensaje').style.color = '#ff2a5f';
+        });
+
+    function capturar(posicion) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        let ctx = canvas.getContext('2d');
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        let dataURL = canvas.toDataURL('image/jpeg', 0.9);
+
+        fetch('/api/guardar_foto_master', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cedula, posicion, imagen: dataURL })
+        })
+        .then(r => r.json())
+        .then(data => {
+            if (data.status === 'ok') {
+                fotos[posicion] = true;
+                document.getElementById('mensaje').textContent = '[SISTEMA]: Vector ' + posicion.toUpperCase() + ' almacenado.';
+                let btn = document.getElementById('btn-' + posicion);
+                btn.style.opacity = '0.4'; btn.disabled = true;
+                let ind = document.getElementById('ind-' + posicion);
+                ind.innerHTML = '<i class="bi bi-check-circle-fill" style="color:#04d976"></i> ' + posicion.toUpperCase();
+                ind.style.color = '#04d976';
+                if (fotos.frente && fotos.derecha && fotos.izquierda) {
+                    document.getElementById('btn-verificar').style.display = 'inline-block';
+                    document.getElementById('mensaje').textContent = '[SISTEMA]: Perfil biométrico 100% capturado. Continúe con la verificación.';
+                    document.getElementById('mensaje').style.color = '#04d976';
+                    let stream = video.srcObject;
+                    if (stream) stream.getTracks().forEach(t => t.stop());
+                }
+            }
+        });
+    }
+    </script>
+    {% endif %}
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+<script>
+particlesJS("particles-js", {
+    "particles": {
+        "number": { "value": 50, "density": { "enable": true, "value_area": 900 } },
+        "color": { "value": "#ffd700" },
+        "shape": { "type": "circle" },
+        "opacity": { "value": 0.35, "random": true },
+        "size": { "value": 2, "random": true },
+        "line_linked": { "enable": true, "distance": 120, "color": "#ffd700", "opacity": 0.15, "width": 1 },
+        "move": { "enable": true, "speed": 1.5, "direction": "none", "out_mode": "out" }
+    },
+    "interactivity": {
+        "detect_on": "canvas",
+        "events": { "onhover": { "enable": true, "mode": "grab" }, "onclick": { "enable": false } },
+        "modes": { "grab": { "distance": 140, "line_linked": { "opacity": 0.5 } } }
+    },
+    "retina_detect": true
+});
+
+// Rangos por componente FANB
+const rangosFANB = {
+    "Ejército Bolivariano": [
+        "Soldado Raso", "Cabo Segundo", "Cabo Primero",
+        "Sargento Segundo", "Sargento Primero", "Sargento Mayor",
+        "Sargento Ayudante", "Sargento Supervisor", "Sargento Superior",
+        "Subteniente", "Teniente", "Capitán",
+        "Mayor", "Teniente Coronel", "Coronel",
+        "General de Brigada", "General de División", "Mayor General",
+        "General en Jefe"
+    ],
+    "Armada Bolivariana": [
+        "Marinero", "Marinero Distinguido", "Cabo Segundo de Mar",
+        "Cabo Primero de Mar", "Cabo Mayor de Mar",
+        "Sargento Segundo de Mar", "Sargento Primero de Mar",
+        "Sargento Mayor de Mar", "Sargento Ayudante de Mar",
+        "Sargento Supervisor de Mar", "Sargento Superior de Mar",
+        "Alférez de Navío", "Teniente de Navío", "Capitán de Corbeta",
+        "Capitán de Fragata", "Capitán de Navío",
+        "Contralmirante", "Vicealmirante", "Almirante",
+        "Almirante en Jefe"
+    ],
+    "Aviación Militar Bolivariana": [
+        "Aeronáutico Raso", "Aeronáutico Distinguido",
+        "Cabo Segundo de Aviación", "Cabo Primero de Aviación",
+        "Sargento Segundo de Aviación", "Sargento Primero de Aviación",
+        "Sargento Mayor de Aviación", "Sargento Ayudante de Aviación",
+        "Sargento Supervisor de Aviación", "Sargento Superior de Aviación",
+        "Subteniente de Aviación", "Teniente de Aviación", "Capitán de Aviación",
+        "Mayor de Aviación", "Teniente Coronel de Aviación", "Coronel de Aviación",
+        "General de Brigada Aérea", "General de División Aérea",
+        "Mayor General del Aire", "General en Jefe del Aire"
+    ],
+    "Guardia Nacional Bolivariana": [
+        "Distinguido", "Cabo Segundo GNB", "Cabo Primero GNB",
+        "Sargento Segundo GNB", "Sargento Primero GNB",
+        "Sargento Mayor GNB", "Sargento Ayudante GNB",
+        "Sargento Supervisor GNB", "Sargento Superior GNB",
+        "Subteniente GNB", "Teniente GNB", "Capitán GNB",
+        "Mayor GNB", "Teniente Coronel GNB", "Coronel GNB",
+        "General de Brigada GNB", "General de División GNB",
+        "Mayor General GNB", "General en Jefe GNB"
+    ],
+    "Milicia Bolivariana": [
+        "Miliciano Raso", "Miliciano Distinguido",
+        "Cabo de Milicia", "Sargento de Milicia",
+        "Oficial de Milicia", "Teniente de Milicia",
+        "Capitán de Milicia", "Mayor de Milicia",
+        "Teniente Coronel de Milicia", "Coronel de Milicia",
+        "General de Brigada Milicia", "Mayor General Milicia"
+    ]
+};
+
+function actualizarRangos() {
+    const componente = document.getElementById('componente').value;
+    const rangoSelect = document.getElementById('rango');
+    rangoSelect.innerHTML = '<option value="" disabled selected>Seleccione Grado/Rango</option>';
+    if (rangosFANB[componente]) {
+        rangosFANB[componente].forEach(r => {
+            const opt = document.createElement('option');
+            opt.value = r; opt.textContent = r;
+            rangoSelect.appendChild(opt);
+        });
+    }
+}
+</script>
+</body>
+</html>

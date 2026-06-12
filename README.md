@@ -233,3 +233,9 @@ Actualmente se encuentra en fase de optimización y fortalecimiento de los módu
 # Autor
 Estudiante de Ingeniería de Sistemas
 Universidad Nacional Experimental Politécnica de la Fuerza Armada Nacional Bolivariana (UNEFA)
+
+---
+
+## Documentación Técnica
+Para generar la documentación autogenerada del código, ejecuta en la terminal:
+`pdoc app.py -o documentacion/`

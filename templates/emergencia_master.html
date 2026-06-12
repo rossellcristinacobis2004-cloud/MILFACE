@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MILFACE - Reposición de Emergencia</title>
+    <meta name="description" content="Protocolo de emergencia para reposición del Administrador cuando el titular no está disponible">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        body { background:#070b14; min-height:100vh; display:flex; align-items:center; justify-content:center; }
+        #particles-js { position:fixed; width:100%; height:100%; top:0; left:0; z-index:0; background:#070b14; }
+        .emergency-box {
+            position:relative; z-index:10;
+            max-width:480px; width:100%;
+            background:rgba(7,11,20,0.9);
+            backdrop-filter:blur(20px);
+            border:1px solid rgba(255,42,95,0.4);
+            border-radius:18px;
+            padding:48px;
+            text-align:center;
+            box-shadow:0 0 60px rgba(255,42,95,0.1);
+        }
+        .red-title {
+            font-family:'Orbitron',sans-serif;
+            font-weight:900; font-size:1.3rem;
+            color:#ff2a5f;
+            letter-spacing:2px;
+            text-shadow:0 0 20px rgba(255,42,95,0.4);
+        }
+        .emergency-input {
+            background:rgba(13,20,35,0.8);
+            border:1px solid rgba(255,42,95,0.3);
+            color:#f0f8ff; border-radius:8px;
+            padding:14px 16px; width:100%;
+            font-family:'Orbitron',sans-serif;
+            letter-spacing:3px; font-size:1rem;
+            text-align:center; transition:all 0.3s;
+        }
+        .emergency-input:focus {
+            outline:none;
+            border-color:#ff2a5f;
+            box-shadow:0 0 15px rgba(255,42,95,0.25);
+            background:rgba(13,20,35,0.95);
+        }
+        .btn-red {
+            background:rgba(255,42,95,0.12);
+            border:1px solid #ff2a5f; color:#ff2a5f;
+            padding:12px 28px; border-radius:8px;
+            font-weight:700; font-family:'Orbitron',sans-serif;
+            letter-spacing:1px; transition:all 0.3s;
+            cursor:pointer; font-size:13px;
+        }
+        .btn-red:hover { background:#ff2a5f; color:#fff; box-shadow:0 0 24px rgba(255,42,95,0.5); }
+        .warning-card {
+            background:rgba(255,42,95,0.05);
+            border:1px solid rgba(255,42,95,0.2);
+            border-radius:10px; padding:16px; margin-bottom:24px;
+        }
+    </style>
+</head>
+<body>
+<div id="particles-js"></div>
+
+<div class="emergency-box">
+    <i class="bi bi-exclamation-triangle-fill" style="font-size:3rem; color:#ff2a5f; text-shadow:0 0 20px rgba(255,42,95,0.5); animation: pulse 2s infinite;"></i>
+    <h1 class="red-title mt-3">PROTOCOLO DE EMERGENCIA</h1>
+    <p class="text-secondary mt-2 mb-4" style="font-size:12px; letter-spacing:1px;">REPOSICIÓN DE ADMINISTRADOR — USO RESTRINGIDO</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}{% for cat, msg in messages %}
+        {% if cat == 'success' %}
+        <div class="alert mb-4 p-3 rounded" style="background:rgba(4,217,118,0.1);border:1px solid #04d976;color:var(--text-main);">
+        {% else %}
+        <div class="alert mb-4 p-3 rounded" style="background:rgba(255,42,95,0.1);border:1px solid #ff2a5f;color:var(--text-main);">
+        {% endif %}
+            {{ msg }}
+        </div>
+        {% endfor %}{% endif %}
+    {% endwith %}
+
+    <div class="warning-card text-start">
+        <p class="mb-1" style="color:#ff2a5f; font-size:12px; font-family:'Orbitron',sans-serif; letter-spacing:1px;">
+            <i class="bi bi-shield-exclamation me-1"></i> ADVERTENCIA
+        </p>
+        <p class="text-secondary mb-0" style="font-size:12px; line-height:1.6;">
+            Este protocolo está destinado a situaciones donde el Administrador actual no puede verificar su identidad biométricamente. 
+            El administrador anterior quedará archivado en el historial de auditoría del sistema.
+        </p>
+    </div>
+
+    <form method="POST" action="/emergencia_master">
+        <label class="text-secondary d-block mb-2" style="font-size:12px; letter-spacing:1px;">CÓDIGO DE EMERGENCIA DEL SISTEMA</label>
+        <input type="password" name="llave_emergencia" id="llave_emergencia"
+               class="emergency-input mb-4"
+               placeholder="••••••••••••"
+               required autocomplete="off">
+
+        <button type="submit" class="btn-red w-100 mb-3">
+            <i class="bi bi-unlock-fill me-2"></i> EJECUTAR PROTOCOLO DE EMERGENCIA
+        </button>
+    </form>
+
+    <a href="/login" class="text-secondary" style="font-size:12px; text-decoration:none;">
+        <i class="bi bi-arrow-left me-1"></i> Volver al acceso
+    </a>
+</div>
+
+<script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+<script>
+particlesJS("particles-js", {
+    "particles": {
+        "number":{"value":30},
+        "color":{"value":"#ff2a5f"},
+        "opacity":{"value":0.25,"random":true},
+        "size":{"value":2,"random":true},
+        "line_linked":{"enable":true,"distance":100,"color":"#ff2a5f","opacity":0.1},
+        "move":{"enable":true,"speed":0.8}
+    },
+    "retina_detect":true
+});
+</script>
+<style>
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.6;text-shadow:0 0 30px rgba(255,42,95,0.8);} }
+</style>
+</body>
+</html>

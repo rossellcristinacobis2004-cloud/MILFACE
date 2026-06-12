@@ -51,6 +51,34 @@
               {% endif %}
             {% endwith %}
 
+            <!-- TARJETA DEL MÁSTER ACTIVO -->
+            {% if master_activo %}
+            <div class="mb-5">
+                <h5 style="font-family:'Orbitron',sans-serif; font-size:13px; letter-spacing:2px; color:#ffd700; margin-bottom:16px;">
+                    <i class="bi bi-star-fill me-2"></i> ADMINISTRADOR DEL SISTEMA
+                </h5>
+                <div class="d-flex align-items-center gap-4 p-4 rounded" style="background:rgba(255,200,0,0.04); border:1px solid rgba(255,200,0,0.25); max-width:520px; position:relative; overflow:hidden;">
+                    <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,200,0,0.04),transparent);pointer-events:none;"></div>
+                    {% if master_activo['foto_frente'] %}
+                    <img src="{{ url_for('servir_foto', filename=master_activo['foto_frente'].replace('fotos/', '').replace('fotos\\', '')) }}"
+                         style="width:90px;height:90px;object-fit:cover;border-radius:50%;border:3px solid #ffd700;box-shadow:0 0 20px rgba(255,200,0,0.4);flex-shrink:0;"
+                         alt="Foto Master">
+                    {% else %}
+                    <div style="width:90px;height:90px;border-radius:50%;background:rgba(255,200,0,0.08);border:3px solid rgba(255,200,0,0.4);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="bi bi-person-fill" style="font-size:2.5rem;color:#ffd700;"></i>
+                    </div>
+                    {% endif %}
+                    <div style="flex:1;">
+                        <div style="display:inline-block;background:rgba(255,200,0,0.12);border:1px solid rgba(255,200,0,0.4);border-radius:20px;padding:3px 12px;font-size:10px;letter-spacing:2px;color:#ffd700;font-family:'Orbitron',sans-serif;margin-bottom:8px;">⭐ MÁSTER</div>
+                        <h5 class="mb-1" style="color:var(--text-main);font-family:'Orbitron',sans-serif;font-size:1rem;">{{ master_activo['nombre'] }} {{ master_activo['apellidos'] }}</h5>
+                        <p class="mb-1" style="color:#ffd700;font-size:13px;">{{ master_activo['rango'] }}</p>
+                        <p class="mb-1 text-secondary" style="font-size:12px;"><i class="bi bi-shield-fill me-1"></i>{{ master_activo['componente'] }}</p>
+                        <p class="mb-0 text-secondary" style="font-size:11px;"><i class="bi bi-fingerprint me-1"></i>C.I.: {{ master_activo['cedula'] }} &nbsp;|&nbsp; <i class="bi bi-calendar me-1"></i>Desde: {{ master_activo['fecha_registro'] }}</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             <!-- GRILLA DE SOLDADOS -->
             <div class="row g-4">
                 {% for s in soldados %}
@@ -100,6 +128,42 @@
                                 <p class="rank text-danger">MISION FINALIZADA (BAJA)</p>
                                 <p class="name">{{ sb.nombre }} {{ sb.apellidos }}</p>
                                 <p class="text-secondary small mt-1 mb-0"><i class="bi bi-fingerprint"></i> Cédula: {{ sb.cedula }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- HISTORIAL DE EX-MÁSTERS -->
+            {% if ex_masters %}
+            <div class="mt-5 pt-4" style="border-top: 1px solid rgba(255,200,0,0.15);">
+                <h5 style="font-family:'Orbitron',sans-serif; font-size:12px; letter-spacing:2px; color:#888; margin-bottom:20px;">
+                    <i class="bi bi-clock-history me-2"></i> HISTORIAL DE ADMINISTRADORES
+                </h5>
+                <div class="row g-3">
+                    {% for ex in ex_masters %}
+                    <div class="col-md-4">
+                        <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);">
+                            {% if ex['foto_frente'] %}
+                            <img src="{{ url_for('servir_foto', filename=ex['foto_frente'].replace('fotos/', '').replace('fotos\\', '')) }}"
+                                 style="width:55px;height:55px;object-fit:cover;border-radius:50%;filter:grayscale(80%);border:2px solid rgba(255,255,255,0.15);flex-shrink:0;"
+                                 alt="Ex-Máster">
+                            {% else %}
+                            <div style="width:55px;height:55px;border-radius:50%;background:rgba(255,255,255,0.05);border:2px solid rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                <i class="bi bi-person-fill" style="font-size:1.5rem;color:#666;"></i>
+                            </div>
+                            {% endif %}
+                            <div style="flex:1; min-width:0;">
+                                <div style="display:inline-block;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:2px 10px;font-size:9px;letter-spacing:1px;color:#888;font-family:'Orbitron',sans-serif;margin-bottom:4px;">🎖️ EX-MÁSTER</div>
+                                <p class="mb-0 text-white fw-bold" style="font-size:13px;">{{ ex['nombre'] }} {{ ex['apellidos'] }}</p>
+                                <p class="mb-0 text-secondary" style="font-size:11px;">{{ ex['rango'] }}</p>
+                                <p class="mb-0" style="font-size:10px;color:#555;">
+                                    {{ ex['fecha_inicio'] }} → {{ ex['fecha_fin'] }}
+                                    &nbsp;·&nbsp;
+                                    <span style="color:{{ '#ff2a5f' if ex['motivo_relevo']=='EMERGENCIA' else '#888' }}; font-size:9px;">{{ ex['motivo_relevo'] }}</span>
+                                </p>
                             </div>
                         </div>
                     </div>
