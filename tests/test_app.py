@@ -22,8 +22,9 @@ def test_conexion_bd():
 # Prueba 3: Intentar login con llave incorrecta
 def test_login_invalido(cliente):
     respuesta = cliente.post('/login', data={'llave': 'clave_super_falsa'})
-    # Como la llave es mala, no debería dejarnos entrar, sino redirigir (302)
-    assert respuesta.status_code == 302
+    # Como la llave es mala, vuelve a cargar la página de login (200 OK) mostrando el error
+    assert respuesta.status_code == 200
+    assert b"Llave maestra incorrecta" in respuesta.data
 
 # Prueba 4: Verificar que el logout redirige al login
 def test_logout_redirige(cliente):
