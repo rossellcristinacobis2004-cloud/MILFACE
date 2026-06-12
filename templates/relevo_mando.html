@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MILFACE - Relevo de Mando</title>
+    <meta name="description" content="Protocolo oficial de relevo de mando del Administrador del Sistema MILFACE">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        .scanner-frame { position:relative; display:inline-block; border-radius:12px; overflow:hidden; border:2px solid rgba(255,200,0,0.4); }
+        .scanner-line { position:absolute; top:0; left:0; width:100%; height:3px; background:linear-gradient(to right,transparent,#ffd700,transparent); box-shadow:0 0 12px #ffd700; animation:scan 2.5s infinite linear; z-index:10; }
+        @keyframes scan { 0%{top:0%} 50%{top:100%} 100%{top:0%} }
+        .corner { position:absolute; width:32px; height:32px; border:3px solid #ffd700; z-index:5; }
+        .c-tl{top:8px;left:8px;border-right:none;border-bottom:none;}
+        .c-tr{top:8px;right:8px;border-left:none;border-bottom:none;}
+        .c-bl{bottom:8px;left:8px;border-right:none;border-top:none;}
+        .c-br{bottom:8px;right:8px;border-left:none;border-top:none;}
+        .gold-card { background:rgba(255,200,0,0.04); border:1px solid rgba(255,200,0,0.2); border-radius:12px; padding:20px; }
+        .btn-gold { background:rgba(255,200,0,0.12); border:1px solid #ffd700; color:#ffd700; padding:10px 24px; border-radius:8px; font-weight:700; font-family:'Orbitron',sans-serif; letter-spacing:1px; transition:all 0.3s; cursor:pointer; font-size:13px; text-decoration:none; display:inline-block; }
+        .btn-gold:hover { background:#ffd700; color:#070b14; box-shadow:0 0 24px rgba(255,200,0,0.5); }
+        #llave-reveal { display:none; }
+    </style>
+</head>
+<body data-theme="{{ app_config.tema_visual }}">
+<div class="container-fluid p-0">
+    <div class="row g-0">
+        <!-- SIDEBAR -->
+        <div class="col-md-2 sidebar d-flex flex-column" style="min-height:100vh;">
+            <h3><i class="bi bi-shield-lock-fill"></i> MILFACE</h3>
+            <div class="mt-4">
+                <a href="/"><i class="bi bi-speedometer2"></i> Panel de Control</a>
+                <a href="/registrar"><i class="bi bi-person-plus-fill"></i> Registrar Personal Militar</a>
+                <a href="/soldados"><i class="bi bi-people-fill"></i> Galería Militar</a>
+                <a href="/asistencia"><i class="bi bi-card-checklist"></i> Asistencia</a>
+                <a href="/reporte"><i class="bi bi-file-earmark-excel-fill"></i> Reportes</a>
+                <h6 class="text-secondary mt-4 mb-2 ms-3" style="font-size:12px;letter-spacing:1px;">SISTEMA</h6>
+                <a href="/settings"><i class="bi bi-sliders"></i> Master Ajustes</a>
+            </div>
+        </div>
+
+        <div class="col-md-10 p-5">
+            <a href="/logout" title="Cerrar Sistema" style="position:absolute;top:25px;right:40px;z-index:1000;font-size:24px;color:var(--neon-red);text-decoration:none;transition:transform 0.3s;" onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">
+                <i class="bi bi-power"></i>
+            </a>
+
+            <div class="mb-5">
+                <h2 style="font-family:'Orbitron',sans-serif;">
+                    <i class="bi bi-arrow-left-right me-2" style="color:#ffd700;"></i>
+                    Relevo de Mando
+                </h2>
+                <p class="text-muted">Protocolo oficial de transferencia de administración del sistema</p>
+            </div>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}{% for cat, msg in messages %}
+                <div class="alert bg-transparent p-3 rounded mb-4" style="border:1px solid {{ '#04d976' if cat=='success' else '#ff2a5f' }}; color:var(--text-main);">
+                    <i class="bi {{ 'bi-check-circle-fill text-success' if cat=='success' else 'bi-exclamation-triangle-fill text-danger' }} me-2"></i> {{ msg }}
+                </div>
+                {% endfor %}{% endif %}
+            {% endwith %}
+
+            <!-- INFO MÁSTER ACTUAL -->
+            <div class="row g-4">
+                <div class="col-md-5">
+                    <div class="glass-panel h-100">
+                        <h5 class="mb-3" style="color:#ffd700; font-family:'Orbitron',sans-serif; font-size:13px; letter-spacing:1px;">
+                            <i class="bi bi-star-fill me-2"></i> ADMINISTRADOR ACTUAL
+                        </h5>
+                        {% if master_actual %}
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            {% if master_actual['foto_frente'] %}
+                            <img src="{{ url_for('servir_foto', filename=master_actual['foto_frente'].replace('fotos/', '').replace('fotos\\', '')) }}" 
+                                 style="width:70px;height:70px;object-fit:cover;border-radius:50%;border:2px solid #ffd700;" alt="Foto">
+                            {% else %}
+                            <div style="width:70px;height:70px;border-radius:50%;background:rgba(255,200,0,0.1);border:2px solid rgba(255,200,0,0.3);display:flex;align-items:center;justify-content:center;">
+                                <i class="bi bi-person-fill" style="font-size:2rem;color:#ffd700;"></i>
+                            </div>
+                            {% endif %}
+                            <div>
+                                <p class="mb-0 fw-bold text-white">{{ master_actual['nombre'] }} {{ master_actual['apellidos'] }}</p>
+                                <p class="mb-0 text-secondary small">{{ master_actual['rango'] }}</p>
+                                <p class="mb-0" style="font-size:11px;color:#ffd700;">{{ master_actual['componente'] }}</p>
+                            </div>
+                        </div>
+                        <p class="text-secondary small mb-0"><i class="bi bi-fingerprint me-1"></i> C.I.: {{ master_actual['cedula'] }}</p>
+                        <p class="text-secondary small"><i class="bi bi-calendar me-1"></i> Desde: {{ master_actual['fecha_registro'] }}</p>
+                        {% else %}
+                        <p class="text-secondary">No hay datos disponibles.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-7">
+                    <div class="glass-panel">
+                        <h5 class="mb-3" style="color:#ffd700; font-family:'Orbitron',sans-serif; font-size:13px; letter-spacing:1px;">
+                            <i class="bi bi-camera-video me-2"></i> PASO 1 — VERIFICACIÓN BIOMÉTRICA DEL TITULAR
+                        </h5>
+                        <p class="text-secondary small mb-3">El administrador actual debe verificar su identidad para autorizar el relevo.</p>
+
+                        <div class="text-center">
+                            <div class="scanner-frame mb-3">
+                                <div class="corner c-tl"></div><div class="corner c-tr"></div>
+                                <div class="corner c-bl"></div><div class="corner c-br"></div>
+                                <div class="scanner-line"></div>
+                                <video id="videoEl" width="360" autoplay playsinline style="display:block;border-radius:10px;transform:scaleX(-1);"></video>
+                                <canvas id="canvasEl" style="display:none;"></canvas>
+                            </div>
+
+                            <p id="status-msg" style="font-family:'Orbitron',sans-serif;font-size:11px;letter-spacing:1px;color:#ffd700;">Iniciando cámara...</p>
+
+                            <div id="llave-reveal" class="mt-3">
+                                <div class="gold-card mb-3">
+                                    <i class="bi bi-check-circle-fill text-success me-2"></i>
+                                    <span style="color:#04d976; font-family:'Orbitron',sans-serif; font-size:12px;">IDENTIDAD CONFIRMADA — RELEVO AUTORIZADO</span>
+                                </div>
+                                <p class="text-secondary small">El sistema ha archivado al administrador saliente. Registre al nuevo:</p>
+                                <a href="/registro_master" class="btn-gold">
+                                    <i class="bi bi-person-plus-fill me-2"></i> REGISTRAR NUEVO ADMINISTRADOR
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+const video = document.getElementById('videoEl');
+const canvas = document.getElementById('canvasEl');
+const statusMsg = document.getElementById('status-msg');
+let verificado = false;
+let stream = null;
+
+navigator.mediaDevices.getUserMedia({ video: true })
+    .then(s => {
+        stream = s;
+        video.srcObject = s;
+        statusMsg.textContent = 'Analizando rostro del titular...';
+        setTimeout(escanear, 2000);
+    })
+    .catch(() => { statusMsg.textContent = 'ERROR: Sin acceso a la cámara.'; statusMsg.style.color='#ff2a5f'; });
+
+function escanear() {
+    if (verificado) return;
+    canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+    let ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width, 0); ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0);
+    let img = canvas.toDataURL('image/jpeg', 0.9);
+
+    fetch('/api/verificar_master', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imagen: img })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'verificado') {
+            verificado = true;
+            statusMsg.textContent = '✓ Verificado. Ejecutando relevo...';
+            statusMsg.style.color = '#04d976';
+            if (stream) stream.getTracks().forEach(t => t.stop());
+            // Ejecutar el relevo en el backend
+            fetch('/api/ejecutar_relevo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ verificado: true })
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.status === 'ok') {
+                    document.getElementById('llave-reveal').style.display = 'block';
+                }
+            });
+        } else {
+            statusMsg.textContent = 'Escaneando...';
+            setTimeout(escanear, 2200);
+        }
+    })
+    .catch(() => { setTimeout(escanear, 2500); });
+}
+</script>
+</body>
+</html>

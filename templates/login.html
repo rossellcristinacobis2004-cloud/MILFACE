@@ -81,6 +81,10 @@
             margin-bottom: 20px;
             font-size: 14px;
         }
+        @keyframes pulsoMaster {
+            0%, 100% { box-shadow: 0 0 8px rgba(255,200,0,0.15); border-color: rgba(255,200,0,0.35); }
+            50% { box-shadow: 0 0 20px rgba(255,200,0,0.35); border-color: rgba(255,200,0,0.7); }
+        }
     </style>
 </head>
 <body class="d-flex justify-content-center align-items-center" style="height: 100vh; overflow: hidden; margin: 0; background-color: #070b14;">
@@ -113,6 +117,47 @@
                 <i class="bi bi-unlock-fill me-2"></i> INICIAR SESIÓN
             </button>
         </form>
+
+        <!-- ENLACE CONDICIONAL MÁSTER -->
+        {% if not master_registrado %}
+        <div class="mt-4 pt-3" style="border-top: 1px solid rgba(255,200,0,0.15);">
+            <a href="/registro_master" id="link-registro-master" style="
+                display: block;
+                text-align: center;
+                color: #ffd700;
+                text-decoration: none;
+                font-family: 'Orbitron', sans-serif;
+                font-size: 11px;
+                letter-spacing: 1.5px;
+                padding: 10px;
+                border: 1px dashed rgba(255,200,0,0.35);
+                border-radius: 8px;
+                background: rgba(255,200,0,0.04);
+                transition: all 0.3s;
+                animation: pulsoMaster 2.5s ease-in-out infinite;
+            "
+            onmouseover="this.style.background='rgba(255,200,0,0.12)'; this.style.borderColor='#ffd700';"
+            onmouseout="this.style.background='rgba(255,200,0,0.04)'; this.style.borderColor='rgba(255,200,0,0.35)';">
+                <i class="bi bi-star-fill me-2" style="color:#ffd700;"></i>
+                Para iniciar — Registre el Administrador del Sistema
+                <i class="bi bi-star-fill ms-2" style="color:#ffd700;"></i>
+            </a>
+        </div>
+        {% else %}
+        <div class="mt-4 text-center">
+            <a href="/emergencia_master" style="
+                font-size: 10px;
+                color: rgba(255,42,95,0.4);
+                text-decoration: none;
+                letter-spacing: 1px;
+                transition: color 0.3s;
+            "
+            onmouseover="this.style.color='rgba(255,42,95,0.8)';"
+            onmouseout="this.style.color='rgba(255,42,95,0.4)';">
+                <i class="bi bi-exclamation-circle me-1"></i> Reposición de Emergencia
+            </a>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Scripts de Particles.js -->

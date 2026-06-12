@@ -43,7 +43,7 @@ docs: actualizar documentación del proyecto
 refactor: optimizar consultas de base de datos
 
 ## Buenas prácticas
-* Mantener el código organizado y documentado. 
+* Mantener el código organizado y documentado.
 * No subir credenciales ni información sensible.
 * Verificar el correcto funcionamiento antes de crear un Pull Request.
 * Mantener actualizado el archivo CHANGELOG.md con los cambios relevantes del proyecto.

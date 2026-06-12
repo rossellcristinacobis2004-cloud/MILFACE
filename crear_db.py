@@ -89,6 +89,42 @@ def crear_base_de_datos():
     """)
     print("[OK] Tabla 'auditoria_bajas' lista.")
 
+    # TABLA: master
+    # Almacena los datos del administrador activo del sistema
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS master (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre          TEXT NOT NULL,
+        apellidos       TEXT NOT NULL,
+        cedula          TEXT NOT NULL UNIQUE,
+        componente      TEXT NOT NULL,
+        rango           TEXT NOT NULL,
+        foto_frente     TEXT,
+        foto_derecha    TEXT,
+        foto_izquierda  TEXT,
+        fecha_registro  TEXT
+    )
+    """)
+    print("[OK] Tabla 'master' lista.")
+
+    # TABLA: historial_master
+    # Registro auditado de todos los administradores que han existido
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS historial_master (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre          TEXT,
+        apellidos       TEXT,
+        cedula          TEXT,
+        componente      TEXT,
+        rango           TEXT,
+        foto_frente     TEXT,
+        fecha_inicio    TEXT,
+        fecha_fin       TEXT,
+        motivo_relevo   TEXT
+    )
+    """)
+    print("[OK] Tabla 'historial_master' lista.")
+
     # Crear carpeta de fotos si no existe
     if not os.path.exists("fotos"):
         os.makedirs("fotos")

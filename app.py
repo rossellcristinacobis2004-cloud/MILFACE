@@ -10,6 +10,14 @@ import numpy as np
 import reconocimiento
 import io
 import config
+import logging
+
+# Configurar el formato del log
+logging.basicConfig(
+    level=logging.INFO,
+    format='[%(levelname)s] [%(asctime)s]: %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
@@ -27,6 +35,34 @@ def init_db():
     )""")
     cursor.execute("INSERT OR IGNORE INTO configuraciones (clave, valor) VALUES ('tema_visual', 'dark')")
     cursor.execute("INSERT OR IGNORE INTO configuraciones (clave, valor) VALUES ('saludo_ia', 'Acceso Concedido. Bienvenido Comandante al Sistema de Inteligencia Milface.')")
+    # Tabla master
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS master (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre          TEXT NOT NULL,
+        apellidos       TEXT NOT NULL,
+        cedula          TEXT NOT NULL UNIQUE,
+        componente      TEXT NOT NULL,
+        rango           TEXT NOT NULL,
+        foto_frente     TEXT,
+        foto_derecha    TEXT,
+        foto_izquierda  TEXT,
+        fecha_registro  TEXT
+    )""")
+    # Tabla historial_master
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS historial_master (
+        id              INTEGER PRIMARY KEY AUTOINCREMENT,
+        nombre          TEXT,
+        apellidos       TEXT,
+        cedula          TEXT,
+        componente      TEXT,
+        rango           TEXT,
+        foto_frente     TEXT,
+        fecha_inicio    TEXT,
+        fecha_fin       TEXT,
+        motivo_relevo   TEXT
+    )""")
     conexion.commit()
     conexion.close()
 
@@ -61,6 +97,13 @@ def login():
     if 'logged_in' in session:
         return redirect('/')
 
+    # Verificar si existe un Máster registrado
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT COUNT(*) FROM master")
+    master_registrado = cursor.fetchone()[0] > 0
+    conexion.close()
+
     if request.method == 'POST':
         llave = request.form.get('llave')
         if llave == config.LLAVE_MAESTRA:
@@ -68,12 +111,273 @@ def login():
             return redirect('/')
         else:
             flash("Llave maestra incorrecta. Protocolo de bloqueo activo.")
-    return render_template('login.html')
+    return render_template('login.html', master_registrado=master_registrado)
 
 @app.route('/logout')
 def logout():
+    """
+    Controlador para cerrar la sesión del Máster.
+    """
     session.clear()
     return redirect('/login')
+
+# ==================== SISTEMA MÁSTER ====================
+
+def _helper_master_existe():
+    """Devuelve True si hay un master registrado en la BD."""
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT COUNT(*) FROM master")
+    existe = cursor.fetchone()[0] > 0
+    conexion.close()
+    return existe
+
+@app.route('/registro_master', methods=['GET', 'POST'])
+def registro_master():
+    """Formulario de registro del Máster. Solo accesible si no existe un Máster."""
+    cedula_param = request.args.get('cedula')
+    
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT cedula FROM master LIMIT 1")
+    m = cursor.fetchone()
+    conexion.close()
+
+    if m:
+        # Si ya existe un master, solo permitimos acceso si venimos del Paso 1 al Paso 2
+        # (donde se pasa la cedula por GET y coincide con la del master en BD).
+        if request.method == 'POST' or not cedula_param or cedula_param != m[0]:
+            flash("Ya existe un Administrador registrado en el sistema.", "warning")
+            return redirect('/login')
+
+    if request.method == 'POST':
+        nombre    = request.form.get('nombre', '').strip()
+        apellidos = request.form.get('apellidos', '').strip()
+        cedula    = request.form.get('cedula', '').strip()
+        componente = request.form.get('componente', '').strip()
+        rango     = request.form.get('rango', '').strip()
+
+        if not all([nombre, apellidos, cedula, componente, rango]):
+            flash("Todos los campos son obligatorios.", "danger")
+            return redirect('/registro_master')
+
+        from datetime import date
+        fecha_hoy = date.today().isoformat()
+
+        conexion = conectar()
+        cursor = conexion.cursor()
+        try:
+            cursor.execute("""
+                INSERT INTO master (nombre, apellidos, cedula, componente, rango, fecha_registro)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (nombre, apellidos, cedula, componente, rango, fecha_hoy))
+            conexion.commit()
+            conexion.close()
+            return redirect(f'/registro_master?cedula={cedula}')
+        except Exception as e:
+            conexion.close()
+            flash(f"Error al guardar: {e}", "danger")
+            return redirect('/registro_master')
+
+    cedula = request.args.get('cedula')
+    return render_template('registro_master.html', cedula=cedula)
+
+@app.route('/api/guardar_foto_master', methods=['POST'])
+def api_guardar_foto_master():
+    """Guarda las fotos biométricas del Máster."""
+    data = request.json
+    cedula    = data.get('cedula')
+    posicion  = data.get('posicion')
+    imagen_b64 = data.get('imagen')
+
+    if not cedula or not posicion or not imagen_b64:
+        return {"status": "error", "mensaje": "Faltan datos"}, 400
+
+    header, encoded = imagen_b64.split(',', 1)
+    imagen_data = base64.b64decode(encoded)
+    np_arr = np.frombuffer(imagen_data, np.uint8)
+    frame  = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+    if not os.path.exists('fotos'):
+        os.makedirs('fotos')
+
+    ruta = f'fotos/master_{cedula}_{posicion}.jpg'
+    cv2.imwrite(ruta, frame)
+
+    conexion = conectar()
+    cursor = conexion.cursor()
+    col_map = {'frente': 'foto_frente', 'derecha': 'foto_derecha', 'izquierda': 'foto_izquierda'}
+    columna = col_map.get(posicion)
+    if columna:
+        cursor.execute(f"UPDATE master SET {columna} = ? WHERE cedula = ?", (ruta, cedula))
+        conexion.commit()
+    conexion.close()
+    return {"status": "ok"}
+
+@app.route('/verificar_master')
+def verificar_master():
+    """Página de verificación biométrica del Máster tras el registro."""
+    if not _helper_master_existe():
+        return redirect('/registro_master')
+    return render_template('verificar_master.html')
+
+@app.route('/api/verificar_master', methods=['POST'])
+def api_verificar_master():
+    """Recibe un frame, lo compara con las fotos del Máster con LBPH separado."""
+    data = request.json
+    imagen_b64 = data.get('imagen')
+    if not imagen_b64:
+        return {"status": "error"}, 400
+
+    try:
+        header, encoded = imagen_b64.split(',', 1)
+        imagen_data = base64.b64decode(encoded)
+        np_arr = np.frombuffer(imagen_data, np.uint8)
+        frame  = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+
+        # Cargar fotos del master
+        conexion = conectar()
+        cursor = conexion.cursor()
+        cursor.execute("SELECT foto_frente, foto_derecha, foto_izquierda FROM master LIMIT 1")
+        fila = cursor.fetchone()
+        conexion.close()
+
+        if not fila:
+            return {"status": "error", "mensaje": "No hay master registrado"}
+
+        import cv2 as _cv2
+        face_cascade_m = _cv2.CascadeClassifier(_cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+        recognizer_m = _cv2.face.LBPHFaceRecognizer_create()
+
+        faces_m, labels_m = [], []
+        for idx, ruta in enumerate(fila):
+            if ruta and os.path.exists(ruta):
+                img = _cv2.imread(ruta)
+                if img is not None:
+                    gris = _cv2.cvtColor(img, _cv2.COLOR_BGR2GRAY)
+                    # Detect face in the saved training photo
+                    caras_train = face_cascade_m.detectMultiScale(gris, 1.3, 5)
+                    for (x, y, w, h) in caras_train:
+                        rostro_train = gris[y:y+h, x:x+w]
+                        rostro_train = _cv2.resize(rostro_train, (150, 150))
+                        faces_m.append(rostro_train)
+                        labels_m.append(0)
+                        break # solo la primera cara detectada por foto
+
+        if not faces_m:
+            return {"status": "sin_fotos", "mensaje": "No hay fotos del máster para comparar"}
+
+        recognizer_m.train(faces_m, np.array(labels_m))
+
+        gris_frame = _cv2.cvtColor(frame, _cv2.COLOR_BGR2GRAY)
+        caras = face_cascade_m.detectMultiScale(gris_frame, 1.3, 5)
+
+        for (x, y, w, h) in caras:
+            rostro = gris_frame[y:y+h, x:x+w]
+            rostro = _cv2.resize(rostro, (150, 150))
+            label, conf = recognizer_m.predict(rostro)
+            if conf < 95:
+                return {"status": "verificado", "llave": config.LLAVE_MAESTRA}
+
+        return {"status": "no_reconocido"}
+    except Exception as e:
+        return {"status": "error", "mensaje": str(e)}, 500
+
+# ---- RELEVO DE MANDO (Escenario 1: Máster presente) ----
+
+@app.route('/relevo_mando')
+@login_required
+def relevo_mando():
+    """Página de relevo de mando. El Máster actual verifica su identidad antes de ceder el rol."""
+    if not _helper_master_existe():
+        flash("No existe un Máster registrado para relevar.", "warning")
+        return redirect('/settings')
+    conexion = conectar()
+    conexion.row_factory = sqlite3.Row
+    cursor = conexion.cursor()
+    cursor.execute("SELECT * FROM master LIMIT 1")
+    master_actual = cursor.fetchone()
+    conexion.close()
+    return render_template('relevo_mando.html', master_actual=master_actual)
+
+@app.route('/api/ejecutar_relevo', methods=['POST'])
+@login_required
+def api_ejecutar_relevo():
+    """Archiva al Máster actual y habilita el registro del nuevo (Escenario 1)."""
+    data = request.json
+    verificado = data.get('verificado', False)
+    if not verificado:
+        return {"status": "error", "mensaje": "Verificación biométrica requerida"}, 403
+
+    from datetime import date
+    hoy = date.today().isoformat()
+
+    conexion = conectar()
+    cursor = conexion.cursor()
+    cursor.execute("SELECT * FROM master LIMIT 1")
+    m = cursor.fetchone()
+    if m:
+        cursor.execute("""
+            INSERT INTO historial_master
+            (nombre, apellidos, cedula, componente, rango, foto_frente, fecha_inicio, fecha_fin, motivo_relevo)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (m[1], m[2], m[3], m[4], m[5], m[6], m[9], hoy, 'TRASPASO'))
+        cursor.execute("DELETE FROM master")
+        conexion.commit()
+    conexion.close()
+    return {"status": "ok"}
+
+# ---- REPOSICION DE EMERGENCIA (Escenario 2: Máster ausente) ----
+
+@app.route('/emergencia_master', methods=['GET', 'POST'])
+def emergencia_master():
+    """Reposición de emergencia cuando el Máster no está disponible."""
+    if not _helper_master_existe():
+        return redirect('/registro_master')
+
+    if request.method == 'POST':
+        llave_ingresada = request.form.get('llave_emergencia', '')
+        if llave_ingresada != config.LLAVE_MAESTRA:
+            flash("❌ Código de emergencia incorrecto. Acceso denegado.", "danger")
+            return redirect('/emergencia_master')
+
+        from datetime import date
+        hoy = date.today().isoformat()
+
+        conexion = conectar()
+        cursor = conexion.cursor()
+        cursor.execute("SELECT * FROM master LIMIT 1")
+        m = cursor.fetchone()
+        if m:
+            cursor.execute("""
+                INSERT INTO historial_master
+                (nombre, apellidos, cedula, componente, rango, foto_frente, fecha_inicio, fecha_fin, motivo_relevo)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (m[1], m[2], m[3], m[4], m[5], m[6], m[9], hoy, 'EMERGENCIA'))
+            cursor.execute("DELETE FROM master")
+            conexion.commit()
+        conexion.close()
+        flash("Protocolo de emergencia ejecutado. Registre al nuevo Administrador.", "success")
+        return redirect('/registro_master')
+
+    return render_template('emergencia_master.html')
+
+@app.route('/api/datos_master_pendiente')
+def api_datos_master_pendiente():
+    """Devuelve los datos del Máster registrado (para el badge en el paso 2)."""
+    cedula = request.args.get('cedula')
+    conexion = conectar()
+    conexion.row_factory = sqlite3.Row
+    cursor = conexion.cursor()
+    cursor.execute("SELECT nombre, apellidos, componente, rango FROM master WHERE cedula = ?", (cedula,))
+    row = cursor.fetchone()
+    conexion.close()
+    if row:
+        return {"nombre": row["nombre"], "apellidos": row["apellidos"],
+                "componente": row["componente"], "rango": row["rango"]}
+    return {"error": "no encontrado"}, 404
+
+# ==================== FIN SISTEMA MÁSTER ====================
 
 # ------------------ CAMARA (WEB) ------------------
 
@@ -185,6 +489,10 @@ def ver_asistencia():
 @app.route("/")
 @login_required
 def index():
+    """
+    Controlador para la página principal del dashboard.
+    Muestra estadísticas generales y estado de la base de datos.
+    """
     conexion = conectar()
     cursor = conexion.cursor()
 
@@ -212,6 +520,9 @@ def index():
 @app.route("/registrar", methods=["GET", "POST"])
 @login_required
 def registrar():
+    """
+    Controlador para el registro manual de un nuevo soldado.
+    """
     if request.method == "POST":
         nombre = request.form["nombre"]
         apellidos = request.form["apellidos"]
@@ -240,10 +551,17 @@ def registrar():
             cursor.execute("INSERT INTO soldados (cedula, nombre, apellidos, rango, sexo, tipo_sangre) VALUES (?, ?, ?, ?, ?, ?)",
                            (cedula, nombre, apellidos, rango, sexo, tipo_sangre))
             conexion.commit()
+            logging.info(f"Nuevo soldado registrado: {cedula}")
             conexion.close()
             return redirect(f"/registrar?cedula={cedula}")
-        except sqlite3.IntegrityError:
+        except sqlite3.IntegrityError as e:
+            logging.error(f"Error crítico al registrar soldado en BD (Integridad): {str(e)}")
             flash("Error de integridad de base de datos al guardar los datos.", "danger")
+            conexion.close()
+            return redirect("/registrar")
+        except Exception as e:
+            logging.error(f"Error crítico al registrar soldado en BD: {str(e)}")
+            flash("Error interno del sistema", "danger")
             conexion.close()
             return redirect("/registrar")
 
@@ -286,9 +604,18 @@ def ver_soldados():
     
     soldados = [s for s in todos if s['estado'] != 'Baja']
     soldados_baja = [s for s in todos if s['estado'] == 'Baja']
+
+    # Obtener datos del Máster activo
+    cursor.execute("SELECT * FROM master LIMIT 1")
+    master_activo = cursor.fetchone()
+
+    # Obtener historial de ex-Másters
+    cursor.execute("SELECT * FROM historial_master ORDER BY fecha_fin DESC")
+    ex_masters = cursor.fetchall()
     
     conexion.close()
-    return render_template("soldados.html", soldados=soldados, soldados_baja=soldados_baja)
+    return render_template("soldados.html", soldados=soldados, soldados_baja=soldados_baja,
+                           master_activo=master_activo, ex_masters=ex_masters)
 
 @app.route("/reincorporar", methods=["POST"])
 @login_required
