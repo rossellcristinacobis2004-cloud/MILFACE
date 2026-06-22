@@ -18,12 +18,20 @@ jobs:
       with:
         python-version: "3.11"
         
-    - name: Instalar dependencias
+    - name: Instalar dependencias del sistema (OpenCV)
+      run: |
+        sudo apt-get update && sudo apt-get install -y libglib2.0-0 libgl1-mesa-glx
+        
+    - name: Instalar dependencias Python
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install pytest
         
     - name: Correr Pruebas Unitarias con Pytest
+      env:
+        SECRET_KEY: test_secret_key_ci
+        LLAVE_MAESTRA: test_llave_ci
+        DATABASE_URL: milfaces.db
       run: |
         pytest
