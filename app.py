@@ -22,6 +22,9 @@ logging.basicConfig(
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 
+# Crear directorio de fotos si no existe (vital para Render)
+os.makedirs("fotos", exist_ok=True)
+
 def conectar():
     return sqlite3.connect("milfaces.db")
 
