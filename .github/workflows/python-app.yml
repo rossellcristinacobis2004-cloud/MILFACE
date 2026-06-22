@@ -17,16 +17,12 @@ jobs:
       uses: actions/setup-python@v3
       with:
         python-version: "3.11"
-        
-    - name: Instalar dependencias del sistema (OpenCV)
-      run: |
-        sudo apt-get update && sudo apt-get install -y libglib2.0-0 libgl1
-        
+
     - name: Instalar dependencias Python
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest
+        pip install opencv-python-headless pytest
         
     - name: Correr Pruebas Unitarias con Pytest
       env:
