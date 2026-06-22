@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MILFACE - Verificación del Administrador</title>
+    <meta name="description" content="Verificación biométrica facial del Administrador Máster para obtener la llave maestra del sistema">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <style>
+        body {
+            background: #070b14;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+        #particles-js {
+            position: fixed; width:100%; height:100%; top:0; left:0; z-index:0;
+            background: #070b14;
+        }
+        .verify-box {
+            position: relative; z-index: 10;
+            max-width: 560px; width: 100%;
+            background: rgba(7,11,20,0.88);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,200,0,0.3);
+            border-radius: 18px;
+            padding: 48px;
+            text-align: center;
+            box-shadow: 0 0 80px rgba(255,200,0,0.1), 0 0 30px rgba(0,0,0,0.8);
+        }
+        .gold-title {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 1.3rem;
+            background: linear-gradient(135deg, #ffd700, #ffaa00);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 2px;
+        }
+        .scanner-frame {
+            position: relative;
+            display: inline-block;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 2px solid rgba(255,200,0,0.4);
+        }
+        .scanner-line {
+            position: absolute; top: 0; left: 0;
+            width: 100%; height: 3px;
+            background: linear-gradient(to right, transparent, #ffd700, transparent);
+            box-shadow: 0 0 15px #ffd700;
+            animation: scan 2.5s infinite linear;
+            z-index: 10;
+        }
+        @keyframes scan { 0%{top:0%} 50%{top:100%} 100%{top:0%} }
+        .corner { position: absolute; width: 32px; height: 32px; border: 3px solid #ffd700; z-index: 5; }
+        .c-tl { top:8px; left:8px; border-right:none; border-bottom:none; }
+        .c-tr { top:8px; right:8px; border-left:none; border-bottom:none; }
+        .c-bl { bottom:8px; left:8px; border-right:none; border-top:none; }
+        .c-br { bottom:8px; right:8px; border-left:none; border-top:none; }
+
+        /* Estado de escaneo */
+        .status-ring {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,200,0,0.3);
+            border-top: 3px solid #ffd700;
+            animation: spin 1.5s linear infinite;
+            margin: 0 auto 16px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .status-ring i { font-size: 28px; color: #ffd700; animation: none; }
+        @keyframes spin { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+
+        /* Modal Llave */
+        .llave-modal {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+        .llave-modal.show { display: flex; }
+        .llave-box {
+            background: rgba(7,11,20,0.97);
+            border: 2px solid #ffd700;
+            border-radius: 18px;
+            padding: 48px;
+            text-align: center;
+            max-width: 480px;
+            width: 90%;
+            box-shadow: 0 0 80px rgba(255,200,0,0.3), 0 0 30px rgba(255,200,0,0.1);
+            animation: modalPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        @keyframes modalPop {
+            from { transform: scale(0.5); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .llave-display {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 900;
+            letter-spacing: 4px;
+            background: linear-gradient(135deg, #ffd700, #ffaa00, #ffe066);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin: 24px 0;
+            padding: 16px 24px;
+            border: 1px dashed rgba(255,200,0,0.4);
+            border-radius: 10px;
+            background-color: rgba(255,200,0,0.05);
+            word-break: break-all;
+        }
+        .btn-gold {
+            background: rgba(255,200,0,0.12);
+            border: 1px solid #ffd700;
+            color: #ffd700;
+            padding: 12px 28px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 1px;
+            transition: all 0.3s;
+            cursor: pointer;
+            font-size: 13px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-gold:hover {
+            background: #ffd700;
+            color: #070b14;
+            box-shadow: 0 0 24px rgba(255,200,0,0.5);
+        }
+        .pulse-gold {
+            animation: pulseGold 2s infinite;
+        }
+        @keyframes pulseGold {
+            0%, 100% { box-shadow: 0 0 30px rgba(255,200,0,0.2); }
+            50% { box-shadow: 0 0 60px rgba(255,200,0,0.5), 0 0 100px rgba(255,200,0,0.2); }
+        }
+        #status-msg {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 12px;
+            letter-spacing: 1px;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+<div id="particles-js"></div>
+
+<div class="verify-box">
+    <i class="bi bi-shield-shaded" style="font-size: 3rem; color:#ffd700; text-shadow:0 0 20px rgba(255,200,0,0.5);"></i>
+    <h1 class="gold-title mt-3">VERIFICACIÓN BIOMÉTRICA</h1>
+    <p class="text-secondary mt-2 mb-4" style="font-size: 13px;">El sistema analizará su rostro para confirmar su identidad como Administrador</p>
+
+    <!-- CÁMARA -->
+    <div class="scanner-frame mb-3">
+        <div class="corner c-tl"></div>
+        <div class="corner c-tr"></div>
+        <div class="corner c-bl"></div>
+        <div class="corner c-br"></div>
+        <div class="scanner-line"></div>
+        <video id="videoEl" width="400" autoplay playsinline style="display:block; border-radius:10px; transform:scaleX(-1);"></video>
+        <canvas id="canvasEl" style="display:none;"></canvas>
+    </div>
+
+    <!-- ESTADO -->
+    <p id="status-msg" class="text-warning">Activando cámara de verificación...</p>
+
+    <!-- BARRA DE PROGRESO -->
+    <div class="progress mt-3" style="height:4px; background:rgba(255,200,0,0.1); border-radius:4px;">
+        <div id="progress-bar" class="progress-bar" style="width:0%; background:linear-gradient(to right,#ffd700,#ffaa00); transition:width 0.5s;"></div>
+    </div>
+</div>
+
+<!-- MODAL: LLAVE MAESTRA -->
+<div class="llave-modal" id="modalLlave">
+    <div class="llave-box pulse-gold">
+        <i class="bi bi-stars" style="font-size: 3rem; color:#ffd700;"></i>
+        <h2 style="font-family:'Orbitron',sans-serif; font-size:1.1rem; letter-spacing:2px; color:#ffd700; margin-top:16px;">IDENTIDAD CONFIRMADA</h2>
+        <p class="text-secondary mt-2" style="font-size:12px;">Esta es la llave maestra de acceso al sistema MILFACE. Memorícela y no la comparta.</p>
+
+        <div class="llave-display" id="llave-valor">— — — — — —</div>
+
+        <p class="text-secondary mb-3" style="font-size: 11px;">
+            <i class="bi bi-shield-exclamation text-warning me-1"></i>
+            Información clasificada. Cierre esta ventana cuando haya memorizado la llave.
+        </p>
+
+        <div class="d-flex gap-3 justify-content-center">
+            <button onclick="cerrarModal()" class="btn-gold">
+                <i class="bi bi-x-circle me-2"></i> CERRAR
+            </button>
+            <a href="/login" class="btn-gold" style="background:rgba(4,217,118,0.1); border-color:#04d976; color:#04d976;" 
+               onmouseover="this.style.background='#04d976';this.style.color='#070b14';"
+               onmouseout="this.style.background='rgba(4,217,118,0.1)';this.style.color='#04d976';">
+                <i class="bi bi-unlock-fill me-2"></i> IR AL SISTEMA
+            </a>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+<script>
+particlesJS("particles-js", {
+    "particles": {
+        "number": { "value": 40 },
+        "color": { "value": "#ffd700" },
+        "opacity": { "value": 0.3, "random": true },
+        "size": { "value": 2, "random": true },
+        "line_linked": { "enable": true, "distance": 120, "color": "#ffd700", "opacity": 0.1 },
+        "move": { "enable": true, "speed": 1 }
+    },
+    "interactivity": { "detect_on":"canvas", "events": { "onhover":{"enable":false}, "onclick":{"enable":false} } },
+    "retina_detect": true
+});
+
+const video = document.getElementById('videoEl');
+const canvas = document.getElementById('canvasEl');
+const statusMsg = document.getElementById('status-msg');
+const progressBar = document.getElementById('progress-bar');
+let intentos = 0;
+let verificado = false;
+let stream = null;
+
+function setProgress(pct) {
+    progressBar.style.width = pct + '%';
+}
+function setStatus(txt, color) {
+    statusMsg.textContent = txt;
+    statusMsg.style.color = color || '#ffd700';
+}
+
+navigator.mediaDevices.getUserMedia({ video: true })
+    .then(s => {
+        stream = s;
+        video.srcObject = s;
+        setStatus('Analizando rostro...', '#ffd700');
+        setProgress(20);
+        setTimeout(iniciarEscaneo, 1500);
+    })
+    .catch(() => {
+        setStatus('ERROR: No se pudo acceder a la cámara.', '#ff2a5f');
+    });
+
+function capturarFrame() {
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    let ctx = canvas.getContext('2d');
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, 0, 0);
+    return canvas.toDataURL('image/jpeg', 0.9);
+}
+
+function iniciarEscaneo() {
+    if (verificado) return;
+    let img = capturarFrame();
+    setProgress(50);
+    fetch('/api/verificar_master', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imagen: img })
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.status === 'verificado') {
+            verificado = true;
+            setProgress(100);
+            setStatus('✓ IDENTIDAD CONFIRMADA', '#04d976');
+            if (stream) stream.getTracks().forEach(t => t.stop());
+            setTimeout(() => mostrarLlave(data.llave), 800);
+        } else if (data.status === 'sin_fotos') {
+            setStatus('Sin datos biométricos registrados. Regrese al registro.', '#ff2a5f');
+            setProgress(0);
+        } else {
+            intentos++;
+            let progreso = Math.min(20 + intentos * 8, 85);
+            setProgress(progreso);
+            if (intentos < 3) {
+                setStatus('Escaneando... Asegure buena iluminación.', '#ffd700');
+            } else {
+                setStatus('Analizando perfil facial...', '#aab3c2');
+            }
+            setTimeout(iniciarEscaneo, 2000);
+        }
+    })
+    .catch(() => {
+        setTimeout(iniciarEscaneo, 2500);
+    });
+}
+
+function mostrarLlave(llave) {
+    document.getElementById('llave-valor').textContent = llave;
+    document.getElementById('modalLlave').classList.add('show');
+}
+
+function cerrarModal() {
+    document.getElementById('modalLlave').classList.remove('show');
+    window.location.href = '/login';
+}
+</script>
+</body>
+</html>
