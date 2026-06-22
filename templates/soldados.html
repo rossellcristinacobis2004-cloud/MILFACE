@@ -60,7 +60,7 @@
                 <div class="d-flex align-items-center gap-4 p-4 rounded" style="background:rgba(255,200,0,0.04); border:1px solid rgba(255,200,0,0.25); max-width:520px; position:relative; overflow:hidden;">
                     <div style="position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,200,0,0.04),transparent);pointer-events:none;"></div>
                     {% if master_activo['foto_frente'] %}
-                    <img src="{{ url_for('servir_foto', filename=master_activo['foto_frente'].replace('fotos/', '').replace('fotos\\', '')) }}"
+                    <img src="{{ url_for('servir_foto', filename=master_activo['foto_frente'].replace('fotos/', '').replace('fotos\\', '')) }}" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x400/0d1423/00f2fe?text=MÁSTER';"
                          style="width:90px;height:90px;object-fit:cover;border-radius:50%;border:3px solid #ffd700;box-shadow:0 0 20px rgba(255,200,0,0.4);flex-shrink:0;"
                          alt="Foto Master">
                     {% else %}
@@ -86,7 +86,7 @@
                     <div class="soldier-card">
                         <!-- Verificar si tiene foto, si no mostrar avatar generico -->
                         {% if s.foto_frente %}
-                            <img src="{{ url_for('servir_foto', filename=s.foto_frente.replace('fotos/', '').replace('fotos\\\\', '')) }}" alt="Foto">
+                            <img src="{{ url_for('servir_foto', filename=s.foto_frente.replace('fotos/', '').replace('fotos\\\\', '')) }}" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x400/0d1423/00f2fe?text=Sin+Foto';" alt="Foto">
                         {% else %}
                             <img src="https://via.placeholder.com/300x400/0d1423/00f2fe?text=Sin+Foto" alt="Sin Foto">
                         {% endif %}
@@ -118,7 +118,7 @@
                     <div class="col-md-3 col-sm-6">
                         <div class="soldier-card" style="border: 1px dashed var(--neon-red); filter: grayscale(70%);">
                             {% if sb.foto_frente %}
-                                <img src="{{ url_for('servir_foto', filename=sb.foto_frente.replace('fotos/', '').replace('fotos\\\\', '')) }}" alt="Foto">
+                                <img src="{{ url_for('servir_foto', filename=sb.foto_frente.replace('fotos/', '').replace('fotos\\\\', '')) }}" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x400/200000/ff2a5f?text=BAJA';" alt="Foto">
                             {% else %}
                                 <img src="https://via.placeholder.com/300x400/200000/ff2a5f?text=BAJA" alt="Sin Foto">
                             {% endif %}
@@ -147,7 +147,7 @@
                     <div class="col-md-4">
                         <div class="d-flex align-items-center gap-3 p-3 rounded" style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.08);">
                             {% if ex['foto_frente'] %}
-                            <img src="{{ url_for('servir_foto', filename=ex['foto_frente'].replace('fotos/', '').replace('fotos\\', '')) }}"
+                            <img src="{{ url_for('servir_foto', filename=ex['foto_frente'].replace('fotos/', '').replace('fotos\\', '')) }}" onerror="this.onerror=null; this.src='https://via.placeholder.com/300x400/200000/ff2a5f?text=EX-MÁSTER';"
                                  style="width:55px;height:55px;object-fit:cover;border-radius:50%;filter:grayscale(80%);border:2px solid rgba(255,255,255,0.15);flex-shrink:0;"
                                  alt="Ex-Máster">
                             {% else %}

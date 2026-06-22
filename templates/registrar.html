@@ -195,7 +195,7 @@
                     <p id="mensaje" class="text-info font-monospace mt-3 mb-0" style="min-height: 25px;">Activando cámara web local...</p>
 
                     <div class="mt-4">
-                        <a href="/" class="btn-neon border border-danger text-danger" style="background: transparent;">Someter Interrupción</a>
+                        <a href="/cancelar_registro?cedula={{ request.args.get('cedula') }}" class="btn-neon border border-danger text-danger" style="background: transparent;">Someter Interrupción</a>
                         <a href="/" id="finalizar" class="btn-neon-green ms-2" style="display:none;">
                             <i class="bi bi-database-check"></i> Finalizar Enrolamiento
                         </a>

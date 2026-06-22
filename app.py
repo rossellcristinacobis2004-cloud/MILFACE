@@ -523,6 +523,14 @@ def registrar():
     """
     Controlador para el registro manual de un nuevo soldado.
     """
+    if request.method == "GET" and not request.args.get("cedula"):
+        # Limpieza silenciosa de registros huérfanos/incompletos (sin foto frontal)
+        conexion = conectar()
+        cursor = conexion.cursor()
+        cursor.execute("DELETE FROM soldados WHERE foto_frente IS NULL OR foto_frente = ''")
+        conexion.commit()
+        conexion.close()
+
     if request.method == "POST":
         nombre = request.form["nombre"]
         apellidos = request.form["apellidos"]
@@ -567,11 +575,24 @@ def registrar():
 
     return render_template("registrar.html")
 
+@app.route("/cancelar_registro")
+@login_required
+def cancelar_registro():
+    """Elimina el registro incompleto si el usuario cancela la toma biométrica."""
+    cedula = request.args.get("cedula")
+    if cedula:
+        conexion = conectar()
+        cursor = conexion.cursor()
+        cursor.execute("DELETE FROM soldados WHERE cedula = ? AND (foto_frente IS NULL OR foto_frente = '')", (cedula,))
+        conexion.commit()
+        conexion.close()
+        flash("Enrolamiento biométrico interrumpido. Registro anulado con éxito.", "warning")
+    return redirect("/")
+
 @app.route("/fotos/<path:filename>")
 @login_required
 def servir_foto(filename):
     return send_from_directory("fotos", filename)
-
 
 @app.route("/dar_baja", methods=["POST"])
 @login_required
