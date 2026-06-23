@@ -69,59 +69,71 @@ DEBUG=False
 ---
 
 # Arquitectura del Sistema
-
 ```mermaid
-flowchart LR
+flowchart TB
+subgraph Frontend["Cliente Web"]
+    UI["HTML5 + CSS3 + Bootstrap"]
+    JS["JavaScript ES6"]
+    Cam["WebRTC / Cámara Web"]
+end
 
- subgraph Client[" Cliente (Frontend JS)"]
-        HTML5["HTML5 + CSS3 + Bootstrap"]
-        JS["JavaScript"]
-        Camara["📷 Cámara Web"]
-  end
+subgraph Backend["Backend Flask"]
+    Router["REST API - app.py"]
+    Auth["Autenticación y Control de Acceso"]
+    Config["Variables de Entorno (.env)"]
+end
 
- subgraph FacialAnalysis[" Reconocimiento Facial"]
-        Cascada["Detección Facial"]
-        OpenCV["OpenCV"]
-        LIBH["Reconocimiento"]
-        NumPy["NumPy"]
-  end
+subgraph CoreAI["Motor de Reconocimiento Facial"]
+    Decoder["Decodificación Base64<br/>Frames recibidos"]
+    Haar["Haar Cascade<br/>Detección facial"]
+    Numpy["NumPy<br/>Matrices y Procesamiento"]
+    LBPH["LBPH Recognizer<br/>Identificación Facial"]
+end
 
- subgraph Backend[" Backend Flask"]
-        API["REST API"]
-        Fetch["Fetch API"]
-        DecoLog["Seguridad"]
-        ConfigSec["Configuración"]
-  end
+subgraph Database["Persistencia"]
+    SQLite[("SQLite3")]
+    Fotos["Repositorio de Fotografías"]
+end
 
- subgraph Database[" Base de Datos"]
-        SQL["SQLite3"]
-        Table1["Personal Militar"]
-        Table2["Asistencia"]
-        Table3["Configuraciones"]
-  end
+subgraph Analytics["Reportes"]
+    Pandas["Pandas + OpenPyXL"]
+end
 
- subgraph Reports[" Reportes"]
-        ReportModule["Pandas + OpenPyXL"]
-  end
+UI --- JS
+JS --- Cam
 
-    HTML5 --> Camara
-    Camara --> Cascada
-    Camara --> JS
-    JS --> Fetch
-    Cascada --> OpenCV
-    OpenCV --> LIBH
-    LIBH --> NumPy
-    NumPy --> API
-    Fetch --> API
-    API --> DecoLog
-    API --> ConfigSec
-    API --> SQL
-    SQL --> Table1
-    SQL --> Table2
-    SQL --> Table3
-    ReportModule --> API
+Router --- Auth
+Router --- Config
+
+Decoder --> Haar
+Haar --> Numpy
+Numpy --> LBPH
+
+SQLite --- Fotos
+
+JS -- "1. Captura Frame" --> Cam
+JS -- "2. POST /api/reconocer<br/>Imagen Base64" --> Router
+Router -- "3. Envía Imagen" --> Decoder
+
+LBPH -- "4. Resultado de Identificación" --> Router
+Router -- "5. Consulta / Actualiza Registros" --> SQLite
+Router -- "6. Lectura de Fotografías" --> Fotos
+Router -- "7. Respuesta JSON" --> JS
+
+Router --> Pandas
+
+classDef frontend fill:#f0f9ff,stroke:#38bdf8,stroke-width:2px,color:#1e293b
+classDef backend fill:#f5f3ff,stroke:#a855f7,stroke-width:2px,color:#1e293b
+classDef ai fill:#fef2f2,stroke:#ef4444,stroke-width:2px,color:#1e293b
+classDef db fill:#f0fdf4,stroke:#22c55e,stroke-width:2px,color:#1e293b
+classDef tools fill:#fefce8,stroke:#eab308,stroke-width:2px,color:#1e293b
+
+class UI,JS,Cam frontend
+class Router,Auth,Config backend
+class Decoder,Haar,Numpy,LBPH ai
+class SQLite,Fotos db
+class Pandas tools
 ```
-
 ---
 
 #  Modelo Entidad Relación
