@@ -215,7 +215,7 @@ sequenceDiagram
     participant DB as Base de Datos SQLite
 
     %% ================= LOGIN =================
-    Note over Usuario,DB: 🔐 Autenticación del sistema
+    Note over Usuario,DB:  Autenticación del sistema
 
     Usuario->>Frontend: Ingresa llave maestra
     Frontend->>Backend: POST /login
@@ -224,7 +224,7 @@ sequenceDiagram
     Backend-->>Frontend: session['logged_in'] o error
 
     %% ================= REGISTRO SOLDADO =================
-    Note over Usuario,DB: 👤 Registro de soldados
+    Note over Usuario,DB:  Registro de soldados
 
     Usuario->>Frontend: Registrar soldado
     Frontend->>Backend: POST /registrar
@@ -237,7 +237,7 @@ sequenceDiagram
     Backend-->>Frontend: OK
 
     %% ================= RECONOCIMIENTO =================
-    Note over Usuario,DB: 📸 Reconocimiento facial asistencia
+    Note over Usuario,DB:  Reconocimiento facial asistencia
 
     Usuario->>Frontend: Activar cámara
     Frontend->>Frontend: Captura frame (WebRTC)
@@ -253,7 +253,7 @@ sequenceDiagram
     Backend-->>Frontend: JSON resultado
 
     %% ================= CONSULTA =================
-    Note over Usuario,DB: 📊 Consulta de asistencia
+    Note over Usuario,DB:  Consulta de asistencia
 
     Usuario->>Frontend: Ver asistencia
     Frontend->>Backend: GET /asistencia
