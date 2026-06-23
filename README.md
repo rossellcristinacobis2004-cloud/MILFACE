@@ -265,7 +265,6 @@ sequenceDiagram
 ---
 ## Diagramas de flujo 
 ## 1. Flujo General del Sistema
-
 ```mermaid
 flowchart TD
     A([ Usuario accede al sistema]) --> B{¿Sesión activa?}
@@ -294,19 +293,17 @@ flowchart TD
     F --> S[ Apagar Sistema]
     S --> T[ Cerrar Sesión]
     T --> C
-
-    style A fill:#070b14,stroke:#00f2fe,color:#f0f8ff
-    style C fill:#070b14,stroke:#ff2a5f,color:#f0f8ff
-    style F fill:#070b14,stroke:#04d976,color:#f0f8ff
-    style I fill:#070b14,stroke:#ff2a5f,color:#ff2a5f
-    style J fill:#070b14,stroke:#04d976,color:#04d976
-    style K fill:#070b14,stroke:#00f2fe,color:#00f2fe
 ```
 
 ---
 ## 2. Sistema Máster (Administrador)
-
 ```mermaid
+---
+config:
+  layout: elk
+  theme: neo
+  look: neo
+---
 flowchart TD
     subgraph REG[" REGISTRO INICIAL DEL MÁSTER"]
         A([No existe Máster]) --> B[Formulario de Registro]
@@ -353,10 +350,6 @@ flowchart TD
         AF --> AG[Eliminar Máster de tabla]
         AG --> Z
     end
-
-    style REG fill:#0d1423,stroke:#00f2fe,color:#f0f8ff
-    style VER fill:#0d1423,stroke:#04d976,color:#f0f8ff
-    style REL fill:#0d1423,stroke:#f8c102,color:#f0f8ff
 ```
 
 ---
