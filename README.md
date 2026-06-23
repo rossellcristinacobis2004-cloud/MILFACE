@@ -140,46 +140,45 @@ class Pandas tools
 ```mermaid
 erDiagram
     %% Relaciones
-    SOLDADOS ||--o{ ASISTENCIA : "genera registros"
-    SOLDADOS ||--o{ AUDITORIA_BAJAS : "puede tener"
-    MASTER ||--o{ HISTORIAL_MASTER : "es archivado en (relevo/emergencia)"
 
-    %% Tablas y Atributos
+    SOLDADOS ||--o{ ASISTENCIA : "genera"
+    SOLDADOS ||--o{ AUDITORIA_BAJAS : "posee historial"
+    MASTER ||--o{ HISTORIAL_MASTER : "genera"
+
     SOLDADOS {
-        INTEGER id PK "AUTOINCREMENT"
+        INTEGER id PK
         TEXT nombre
         TEXT apellidos
-        TEXT cedula UK "UNIQUE"
+        TEXT cedula UK
         TEXT rango
         TEXT sexo
         TEXT tipo_sangre
         TEXT foto_frente
         TEXT foto_derecha
         TEXT foto_izquierda
-        TEXT estado "Ej: Activo, Baja"
+        TEXT estado
     }
 
     ASISTENCIA {
-        INTEGER id PK "AUTOINCREMENT"
-        TEXT cedula
-        INTEGER id_soldado FK "Ref: soldados(id)"
+        INTEGER id PK
+        INTEGER id_soldado FK
         TEXT fecha
         TEXT hora_entrada
         TEXT hora_salida
     }
 
     AUDITORIA_BAJAS {
-        INTEGER id PK "AUTOINCREMENT"
-        TEXT cedula
-        TEXT razon "Motivo de la baja"
+        INTEGER id PK
+        INTEGER id_soldado FK
+        TEXT razon
         TEXT fecha
     }
 
     MASTER {
-        INTEGER id PK "AUTOINCREMENT"
+        INTEGER id PK
         TEXT nombre
         TEXT apellidos
-        TEXT cedula UK "UNIQUE"
+        TEXT cedula UK
         TEXT componente
         TEXT rango
         TEXT foto_frente
@@ -189,63 +188,78 @@ erDiagram
     }
 
     HISTORIAL_MASTER {
-        INTEGER id PK "AUTOINCREMENT"
-        TEXT nombre
-        TEXT apellidos
-        TEXT cedula
-        TEXT componente
-        TEXT rango
-        TEXT foto_frente
+        INTEGER id PK
+        INTEGER id_master FK
         TEXT fecha_inicio
         TEXT fecha_fin
-        TEXT motivo_relevo "Ej: Traspaso, Emergencia"
+        TEXT motivo_relevo
     }
 
     CONFIGURACIONES {
-        TEXT clave PK "Identificador del ajuste"
-        TEXT valor "Valor asignado"
+        TEXT clave PK
+        TEXT valor
     }
 ```
 
 ---
 
 # Modelado de Secuencia
-
 ```mermaid
 sequenceDiagram
 
-    participant Comandante as Comandante/Administrador
+    participant Usuario as Comandante/Administrador
     participant Frontend
-    participant Backend as Backend Flask
-    participant ReconocimientoFacial
-    participant BaseDatos
+    participant Backend as Flask Backend
+    participant Reconocimiento as Motor reconocimiento.py
+    participant MasterBiometrico as Módulo Master (OpenCV/LBPH)
+    participant DB as Base de Datos SQLite
 
-    Note over Comandante,BaseDatos: Inicio de Sesión
+    %% ================= LOGIN =================
+    Note over Usuario,DB: 🔐 Autenticación del sistema
 
-    Comandante->>Frontend: Ingresa credenciales
-    Frontend->>Backend: Enviar credenciales
-    Backend->>ReconocimientoFacial: Validar usuario
-    ReconocimientoFacial->>BaseDatos: Consultar identidad
-    BaseDatos-->>Backend: Resultado
-    Backend-->>Frontend: Acceso permitido o denegado
+    Usuario->>Frontend: Ingresa llave maestra
+    Frontend->>Backend: POST /login
+    Backend->>DB: Consultar master / validación de sesión
+    DB-->>Backend: Resultado
+    Backend-->>Frontend: session['logged_in'] o error
 
-    Note over Comandante,BaseDatos: Registro de Asistencia
+    %% ================= REGISTRO SOLDADO =================
+    Note over Usuario,DB: 👤 Registro de soldados
 
-    Comandante->>Frontend: Activar registro
-    Frontend->>Backend: Solicitar registro
-    Backend->>ReconocimientoFacial: Procesar rostro
-    ReconocimientoFacial-->>Backend: Identidad validada
-    Backend->>BaseDatos: Registrar asistencia
-    BaseDatos-->>Backend: Confirmación
-    Backend-->>Frontend: Resultado
+    Usuario->>Frontend: Registrar soldado
+    Frontend->>Backend: POST /registrar
+    Backend->>DB: INSERT soldados
+    DB-->>Backend: Confirmación
+    Backend-->>Frontend: Redirección a captura de fotos
 
-    Note over Comandante,BaseDatos: Consulta de Asistencias
+    Frontend->>Backend: POST /api/guardar_foto (Base64 + posición)
+    Backend->>DB: UPDATE soldados (foto_frente/derecha/izquierda)
+    Backend-->>Frontend: OK
 
-    Comandante->>Frontend: Consultar asistencias
-    Frontend->>Backend: Solicitar registros
-    Backend->>BaseDatos: Obtener datos
-    BaseDatos-->>Backend: Registros
-    Backend-->>Frontend: Mostrar información
+    %% ================= RECONOCIMIENTO =================
+    Note over Usuario,DB: 📸 Reconocimiento facial asistencia
+
+    Usuario->>Frontend: Activar cámara
+    Frontend->>Frontend: Captura frame (WebRTC)
+    Frontend->>Backend: POST /api/reconocer (imagen Base64)
+
+    Backend->>Reconocimiento: reconocer_imagen(frame)
+    Reconocimiento->>DB: Consultar soldados registrados
+    DB-->>Reconocimiento: Dataset de rostros
+
+    Reconocimiento-->>Backend: Resultado (identidad + confianza)
+    Backend->>DB: INSERT/UPDATE asistencia
+    DB-->>Backend: Confirmación
+    Backend-->>Frontend: JSON resultado
+
+    %% ================= CONSULTA =================
+    Note over Usuario,DB: 📊 Consulta de asistencia
+
+    Usuario->>Frontend: Ver asistencia
+    Frontend->>Backend: GET /asistencia
+    Backend->>DB: SELECT + JOIN soldados
+    DB-->>Backend: Registros
+    Backend-->>Frontend: Lista de asistencia
 ```
 
 ---
