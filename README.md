@@ -354,56 +354,51 @@ flowchart TD
 
 ---
 
-## 3. Registro y Gestión de Personal Militar
+## 3. Registro del Personal Militar
 
 ```mermaid
-flowchart TD
-    subgraph REGISTRO[" REGISTRO DE SOLDADO"]
-        A([Registrar Personal]) --> B[Formulario de Datos]
-        B --> C["Ingresar: Nombre, Apellidos,<br/>Cédula, Rango, Sexo,<br/>Tipo de Sangre"]
-        C --> D{¿Cédula ya existe?}
-        D -- "Sí (Activo)" --> E[" Flash: Ya registrado"]
-        D -- "Sí (Baja)" --> F[" Flash: Está de Baja<br/>Reincorporar desde Galería"]
-        D -- No --> G[ INSERT en tabla soldados]
-        G --> H[ Captura Biométrica]
-        H --> I[Foto Frente]
-        H --> J[Foto Derecha]
-        H --> K[Foto Izquierda]
-        I & J & K --> L[Guardar en /fotos<br/>Resetear modelo LBPH]
-    end
+---
+config:
+  theme: neo
+  layout: elk
+---
+flowchart TB
+    A --> B
+    B --> C
+    C --> D
+    D -- Sí (Activo) --> E
+    D -- Sí (Baja) --> F
+    D -- No --> G
+    G --> H
+    H --> I & J & K
+    I --> L
+    J --> L
+    K --> L
 
-    subgraph GALERIA[" GALERÍA MILITAR"]
-        M([Ver Galería]) --> N[Grid de tarjetas<br/>con foto y datos]
-        N --> O{Acción sobre soldado}
-        O --> P[ Dar de Baja]
-        O --> Q[ Reincorporar]
-
-        P --> R[Ingresar justificación]
-        R --> S["Estado → 'Baja'"]
-        S --> T[Registro en<br/>auditoria_bajas]
-
-        Q --> U[Ingresar Llave Maestra]
-        U --> V{¿Llave válida?}
-        V -- Sí --> W["Estado → NULL (Activo)"]
-        W --> X[Resetear modelo LBPH]
-        V -- No --> Y[ Acceso Denegado]
-    end
-
-    subgraph MASTER_GAL[" SECCIÓN MÁSTER EN GALERÍA"]
-        Z[Mostrar Máster Activo]
-        AA[Historial de Ex-Másters]
-    end
-
-    style REGISTRO fill:#0d1423,stroke:#00f2fe,color:#f0f8ff
-    style GALERIA fill:#0d1423,stroke:#04d976,color:#f0f8ff
-    style MASTER_GAL fill:#0d1423,stroke:#f8c102,color:#f0f8ff
+ subgraph REGISTRO["REGISTRO DE SOLDADO"]
+        B["Formulario de Datos"]
+        A(["Registrar Personal"])
+        C["Ingresar: Nombre, Apellidos,<br>Cédula, Rango, Sexo,<br>Tipo de Sangre"]
+        D{"¿Cédula ya existe?"}
+        E["Flash: Ya registrado"]
+        F["Flash: Está de Baja<br>Reincorporar desde Galería"]
+        G["INSERT en tabla soldados"]
+        H["Captura Biométrica"]
+        I["Foto Frente"]
+        J["Foto Derecha"]
+        K["Foto Izquierda"]
+        L["Guardar en /fotos<br>Resetear modelo LBPH"]
+  end
 ```
-
 ---
 
 ## 4. Reconocimiento Facial en Tiempo Real
 
 ```mermaid
+---
+config:
+  theme: default
+---
 flowchart TD
     A([" Activar Escáner<br/>(Tecla J o Botón)"]) --> B[" IA: Iniciando cámaras<br/>de seguridad biométrica"]
     B --> C[Abrir cámara web<br/>en ventana flotante]
@@ -440,19 +435,17 @@ flowchart TD
     X -- "Tiene entrada<br/>sin salida" --> AA[" SALIDA registrada"]
     AA --> AB[" IA: Salida registrada<br/>para Nombre, personal M/F"]
     X -- "Ya tiene entrada<br/>y salida" --> AC[Sin acción<br/>ya completó ciclo]
-
-    style A fill:#070b14,stroke:#00f2fe,color:#f0f8ff
-    style S fill:#070b14,stroke:#ff2a5f,color:#ff2a5f
-    style Y fill:#070b14,stroke:#04d976,color:#04d976
-    style AA fill:#070b14,stroke:#f8c102,color:#f8c102
-    style P fill:#070b14,stroke:#ff2a5f,color:#ff2a5f
 ```
-
 ---
 
 ## 5. Módulo de Reportes e Inteligencia
 
 ```mermaid
+---
+config:
+  layout: dagre
+  theme: default
+---
 flowchart TD
     A([ Reportes]) --> B[Cargar estadísticas<br/>desde la BD]
 
@@ -474,19 +467,17 @@ flowchart TD
     A --> O[ Exportar a Excel]
     O --> P[Generar archivo .xlsx<br/>con openpyxl + pandas]
     P --> Q[Descargar:<br/>Reporte_Asistencia.xlsx]
-
-    style A fill:#070b14,stroke:#00f2fe,color:#f0f8ff
-    style K fill:#070b14,stroke:#ff2a5f,color:#ff2a5f
-    style J fill:#070b14,stroke:#f8c102,color:#f8c102
-    style N fill:#070b14,stroke:#04d976,color:#04d976
-    style Q fill:#070b14,stroke:#04d976,color:#04d976
 ```
 
 ---
 
-##  6. Configuración del Sistema (Settings)
-
+##  6. Configuración del Sistema
 ```mermaid
+---
+config:
+  layout: dagre
+  theme: default
+---
 flowchart TD
     A([ Master Ajustes]) --> B[Panel de Configuración Global]
 
@@ -504,13 +495,7 @@ flowchart TD
 
     B --> L[" Protocolo de<br/>Relevo de Mando"]
     L --> M[ Ir a /relevo_mando]
-
-    style A fill:#070b14,stroke:#00f2fe,color:#f0f8ff
-    style E fill:#070b14,stroke:#00f2fe,color:#00f2fe
-    style F fill:#f0f4f8,stroke:#9b51e0,color:#9b51e0
-    style K fill:#070b14,stroke:#04d976,color:#04d976
 ```
-
 ---
 
 # Control de Calidad
