@@ -1,0 +1,43 @@
+version: "3.9"
+
+# ── MILFACE | Avance 5: Auto-recuperación ──────────────────────────────────
+# Las variables sensibles se inyectan desde el entorno del servidor.
+# NUNCA hardcodear credenciales aquí. Usar un .env en el servidor (NO en git).
+
+services:
+  milface:
+    build: .
+    image: milface:latest
+    container_name: milface_app
+    ports:
+      - "5000:5000"
+
+    # ── Variables de entorno inyectadas desde el sistema operativo ──────────
+    # En producción: configurar en el panel de Render / variables del servidor.
+    environment:
+      - SECRET_KEY=${SECRET_KEY}
+      - LLAVE_MAESTRA=${LLAVE_MAESTRA}
+      - DATABASE_URL=${DATABASE_URL:-milfaces.db}
+      - FLASK_DEBUG=0
+
+    # ── Persistencia de la base de datos ───────────────────────────────────
+    volumes:
+      - milface_data:/app/fotos
+      - milface_db:/app
+
+    # ── Política de Auto-recuperación (Self-Healing) ────────────────────────
+    # El contenedor se reinicia automáticamente ante cualquier falla,
+    # excepto cuando se detiene manualmente con `docker stop`.
+    restart: unless-stopped
+
+    # ── Health Check (alineado con el HEALTHCHECK del Dockerfile) ───────────
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  milface_data:
+  milface_db:
