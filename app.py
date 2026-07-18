@@ -136,6 +136,7 @@ def _helper_master_existe():
     return existe
 
 @app.route('/registro_master', methods=['GET', 'POST'])
+@login_required
 def registro_master():
     """Formulario de registro del Máster. Solo accesible si no existe un Máster."""
     cedula_param = request.args.get('cedula')
@@ -817,5 +818,36 @@ def settings_page():
         return redirect("/settings")
     return render_template("settings.html")
 
+@app.route("/health")
+def health_check():
+    """
+    Endpoint de verificación de salud del sistema (Avance 5 - Auto-Recuperación).
+    Devuelve el estado operativo del sistema y la conectividad con la base de datos.
+    """
+    import datetime
+    estado_bd = "ok"
+    try:
+        conexion = conectar()
+        conexion.execute("SELECT 1")
+        conexion.close()
+    except Exception as e:
+        estado_bd = f"error: {str(e)}"
+
+    estado_general = "ok" if estado_bd == "ok" else "degradado"
+    codigo_http = 200 if estado_general == "ok" else 503
+
+    from flask import jsonify
+    return jsonify({
+        "status": estado_general,
+        "sistema": "MILFACE - Sistema de Reconocimiento Facial Militar",
+        "version": "5.0.0",
+        "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
+        "componentes": {
+            "base_de_datos": estado_bd,
+            "api": "ok"
+        }
+    }), codigo_http
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

@@ -29,5 +29,6 @@ jobs:
         SECRET_KEY: test_secret_key_ci
         LLAVE_MAESTRA: test_llave_ci
         DATABASE_URL: milfaces.db
+        PYTHONPATH: ${{ github.workspace }}
       run: |
-        pytest
+        pytest --tb=short -v
