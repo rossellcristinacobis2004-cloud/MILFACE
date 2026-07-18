@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, Response, send_from_directory, send_file, session, flash
+from flask import Flask, render_template, request, redirect, Response, send_from_directory, send_file, session, flash, g, jsonify
 from functools import wraps
 import sqlite3
 from datetime import date
@@ -11,19 +11,124 @@ import reconocimiento
 import io
 import config
 import logging
+import json
+import uuid
+import re
+import datetime as dt
 
-# Configurar el formato del log
-logging.basicConfig(
-    level=logging.INFO,
-    format='[%(levelname)s] [%(asctime)s]: %(message)s',
-    datefmt='%Y-%m-%d %H:%M:%S'
-)
+# ══════════════════════════════════════════════════════════════
+# AVANCE 6 — TRAZABILIDAD: Logs estructurados en formato JSON
+# Cada entrada de log es un objeto JSON legible por máquinas.
+# ══════════════════════════════════════════════════════════════
+class JsonFormatter(logging.Formatter):
+    """Formateador que convierte cada registro de log a JSON estructurado."""
+    def format(self, record):
+        log_obj = {
+            "timestamp": dt.datetime.utcnow().isoformat() + "Z",
+            "level":     record.levelname,
+            "modulo":    record.module,
+            "mensaje":   record.getMessage(),
+        }
+        # Agrega correlation_id si está disponible en el contexto de Flask
+        try:
+            from flask import g as flask_g
+            log_obj["correlation_id"] = getattr(flask_g, 'correlation_id', 'N/A')
+        except RuntimeError:
+            log_obj["correlation_id"] = "N/A"
+        if record.exc_info:
+            log_obj["excepcion"] = self.formatException(record.exc_info)
+        return json.dumps(log_obj, ensure_ascii=False)
+
+# Configurar handler con formato JSON
+_handler = logging.StreamHandler()
+_handler.setFormatter(JsonFormatter())
+logging.root.handlers = []
+logging.root.addHandler(_handler)
+logging.root.setLevel(logging.INFO)
+logger = logging.getLogger("milface")
 
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 
 # Crear directorio de fotos si no existe (vital para Render)
 os.makedirs("fotos", exist_ok=True)
+
+# ══════════════════════════════════════════════════════════════
+# AVANCE 6 — TRAZABILIDAD: Middleware de Correlation ID (UUID)
+# Cada petición recibe un identificador único trazable.
+# ══════════════════════════════════════════════════════════════
+@app.before_request
+def asignar_correlation_id():
+    """Genera un UUID único por petición y lo registra en el log."""
+    g.correlation_id = request.headers.get('X-Correlation-ID', str(uuid.uuid4()))
+    logger.info(json.dumps({
+        "evento": "peticion_recibida",
+        "metodo": request.method,
+        "ruta": request.path,
+        "correlation_id": g.correlation_id,
+        "ip": request.remote_addr
+    }))
+
+@app.after_request
+def agregar_correlation_header(response):
+    """Adjunta el Correlation ID a cada respuesta para trazabilidad end-to-end."""
+    correlation_id = getattr(g, 'correlation_id', 'N/A')
+    response.headers['X-Correlation-ID'] = correlation_id
+    return response
+
+# ══════════════════════════════════════════════════════════════
+# AVANCE 6 — BLUETEAM: Validación y sanitización de entradas
+# Todo dato externo se considera potencialmente malicioso.
+# ══════════════════════════════════════════════════════════════
+def validar_texto(valor, nombre_campo, max_len=100, patron=None):
+    """
+    Valida y sanitiza un campo de texto.
+    - Verifica que no esté vacío.
+    - Verifica longitud máxima.
+    - Verifica formato con regex si se proporciona.
+    Retorna (valor_limpio, error_msg). Si error_msg es None, el valor es válido.
+    """
+    if not valor or not isinstance(valor, str):
+        return None, f"El campo '{nombre_campo}' es obligatorio."
+    valor = valor.strip()
+    if len(valor) == 0:
+        return None, f"El campo '{nombre_campo}' no puede estar vacío."
+    if len(valor) > max_len:
+        return None, f"El campo '{nombre_campo}' excede el máximo de {max_len} caracteres."
+    if patron and not re.match(patron, valor):
+        return None, f"El campo '{nombre_campo}' tiene un formato no permitido."
+    return valor, None
+
+# ══════════════════════════════════════════════════════════════
+# AVANCE 6 — BLUETEAM: Manejadores globales de error seguros
+# Nunca se expone información interna al usuario final.
+# ══════════════════════════════════════════════════════════════
+@app.errorhandler(404)
+def error_404(e):
+    correlation_id = getattr(g, 'correlation_id', str(uuid.uuid4()))
+    logger.warning(json.dumps({"evento": "error_404", "ruta": request.path, "correlation_id": correlation_id}))
+    if request.path.startswith('/api/'):
+        return jsonify({"error": "Recurso no encontrado", "codigo": correlation_id}), 404
+    return render_template('login.html', master_registrado=False,
+                           error_seguro=f"Recurso no encontrado. Código: {correlation_id}"), 404
+
+@app.errorhandler(500)
+def error_500(e):
+    correlation_id = getattr(g, 'correlation_id', str(uuid.uuid4()))
+    logger.error(json.dumps({"evento": "error_500", "ruta": request.path, "correlation_id": correlation_id, "detalle": str(e)}))
+    if request.path.startswith('/api/'):
+        return jsonify({"error": "Error interno del servidor", "codigo": correlation_id}), 500
+    return render_template('login.html', master_registrado=False,
+                           error_seguro=f"Ocurrió un error. Reporte el código: {correlation_id}"), 500
+
+@app.errorhandler(403)
+def error_403(e):
+    correlation_id = getattr(g, 'correlation_id', str(uuid.uuid4()))
+    logger.warning(json.dumps({"evento": "error_403", "ruta": request.path, "correlation_id": correlation_id}))
+    if request.path.startswith('/api/'):
+        return jsonify({"error": "Acceso denegado", "codigo": correlation_id}), 403
+    return render_template('login.html', master_registrado=False,
+                           error_seguro=f"Acceso denegado. Código: {correlation_id}"), 403
 
 def conectar():
     return sqlite3.connect("milfaces.db")
@@ -155,14 +260,19 @@ def registro_master():
             return redirect('/login')
 
     if request.method == 'POST':
-        nombre    = request.form.get('nombre', '').strip()
-        apellidos = request.form.get('apellidos', '').strip()
-        cedula    = request.form.get('cedula', '').strip()
-        componente = request.form.get('componente', '').strip()
-        rango     = request.form.get('rango', '').strip()
+        # ── BLUETEAM: Validación estricta de entradas ──────────────────────
+        PATRON_NOMBRE  = r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\-\.]+$'
+        PATRON_CEDULA  = r'^[VEJve]?\d{6,10}$'
 
-        if not all([nombre, apellidos, cedula, componente, rango]):
-            flash("Todos los campos son obligatorios.", "danger")
+        nombre,    err = validar_texto(request.form.get('nombre'),     'Nombre',     max_len=80,  patron=PATRON_NOMBRE)
+        apellidos, err = validar_texto(request.form.get('apellidos'),  'Apellidos',  max_len=80,  patron=PATRON_NOMBRE) if not err else (None, err)
+        cedula,    err = validar_texto(request.form.get('cedula'),     'Cédula',     max_len=12,  patron=PATRON_CEDULA) if not err else (None, err)
+        componente,err = validar_texto(request.form.get('componente'), 'Componente', max_len=60) if not err else (None, err)
+        rango,     err = validar_texto(request.form.get('rango'),      'Rango',      max_len=60) if not err else (None, err)
+
+        if err:
+            logger.warning(json.dumps({"evento": "validacion_fallida", "campo": err, "correlation_id": getattr(g, 'correlation_id', 'N/A')}))
+            flash(err, "danger")
             return redirect('/registro_master')
 
         from datetime import date
@@ -177,10 +287,14 @@ def registro_master():
             """, (nombre, apellidos, cedula, componente, rango, fecha_hoy))
             conexion.commit()
             conexion.close()
+            logger.info(json.dumps({"evento": "master_registrado", "cedula": cedula, "correlation_id": getattr(g, 'correlation_id', 'N/A')}))
             return redirect(f'/registro_master?cedula={cedula}')
-        except Exception as e:
+        except Exception:
             conexion.close()
-            flash(f"Error al guardar: {e}", "danger")
+            # BLUETEAM: Nunca exponer detalles de excepción al usuario
+            cid = getattr(g, 'correlation_id', 'N/A')
+            logger.error(json.dumps({"evento": "error_registro_master", "correlation_id": cid}), exc_info=True)
+            flash(f"Error interno al guardar. Reporte el código: {cid}", "danger")
             return redirect('/registro_master')
 
     cedula = request.args.get('cedula')
@@ -284,8 +398,11 @@ def api_verificar_master():
                 return {"status": "verificado", "llave": config.LLAVE_MAESTRA}
 
         return {"status": "no_reconocido"}
-    except Exception as e:
-        return {"status": "error", "mensaje": str(e)}, 500
+    except Exception:
+        # BLUETEAM: No exponer detalles de excepción en la API
+        cid = getattr(g, 'correlation_id', 'N/A')
+        logger.error(json.dumps({"evento": "error_verificar_master", "correlation_id": cid}), exc_info=True)
+        return {"status": "error", "codigo": cid}, 500
 
 # ---- RELEVO DE MANDO (Escenario 1: Máster presente) ----
 
@@ -443,8 +560,11 @@ def api_reconocer():
         # Analizar con el motor
         resultado = reconocimiento.reconocer_imagen(frame)
         return resultado
-    except Exception as e:
-        return {"status": "error", "mensaje": str(e)}, 500
+    except Exception:
+        # BLUETEAM: No exponer detalles de excepción en la API
+        cid = getattr(g, 'correlation_id', 'N/A')
+        logger.error(json.dumps({"evento": "error_reconocimiento", "correlation_id": cid}), exc_info=True)
+        return {"status": "error", "codigo": cid}, 500
 # ------------------ FIN CAMARA (WEB) ------------------
 
 #---------------ASISTENCIA------------------
@@ -536,12 +656,22 @@ def registrar():
         conexion.close()
 
     if request.method == "POST":
-        nombre = request.form["nombre"]
-        apellidos = request.form["apellidos"]
-        cedula = request.form["cedula"]
-        rango = request.form["rango"]
-        sexo = request.form["sexo"]
-        tipo_sangre = request.form["tipo_sangre"]
+        # ── BLUETEAM: Validación estricta de entradas del formulario ───────
+        PATRON_NOMBRE = r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s\-\.]+$'
+        PATRON_CEDULA = r'^[VEJve]?\d{6,10}$'
+        PATRON_SANGRE = r'^(A|B|AB|O)[+-]$'
+
+        nombre,      err = validar_texto(request.form.get('nombre'),      'Nombre',      max_len=80,  patron=PATRON_NOMBRE)
+        apellidos,   err = validar_texto(request.form.get('apellidos'),   'Apellidos',   max_len=80,  patron=PATRON_NOMBRE) if not err else (None, err)
+        cedula,      err = validar_texto(request.form.get('cedula'),      'Cédula',      max_len=12,  patron=PATRON_CEDULA) if not err else (None, err)
+        rango,       err = validar_texto(request.form.get('rango'),       'Rango',       max_len=60) if not err else (None, err)
+        sexo,        err = validar_texto(request.form.get('sexo'),        'Sexo',        max_len=20) if not err else (None, err)
+        tipo_sangre, err = validar_texto(request.form.get('tipo_sangre'), 'Tipo Sangre', max_len=3,   patron=PATRON_SANGRE) if not err else (None, err)
+
+        if err:
+            logger.warning(json.dumps({"evento": "validacion_fallida", "detalle": err, "correlation_id": getattr(g, 'correlation_id', 'N/A')}))
+            flash(err, "danger")
+            return redirect("/registrar")
 
         conexion = conectar()
         cursor = conexion.cursor()
