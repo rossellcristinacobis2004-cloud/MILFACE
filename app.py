@@ -136,6 +136,7 @@ def _helper_master_existe():
     return existe
 
 @app.route('/registro_master', methods=['GET', 'POST'])
+@login_required
 def registro_master():
     """Formulario de registro del Máster. Solo accesible si no existe un Máster."""
     cedula_param = request.args.get('cedula')
